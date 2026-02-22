@@ -84,7 +84,7 @@ export default async function TeamPage({
         {/* Bookmarks Section - only shown if links exist for team */}
         {filteredBookmarks.length > 0 && (
           <section className="mb-10">
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">
+            <h2 className="text-xl sm:text-lg font-semibold text-gray-900 mb-3">
               {tabs.find((t) => t.slug === activeTeam)?.label ?? "Team"}
             </h2>
             <div className="flex flex-wrap gap-3">
@@ -94,7 +94,7 @@ export default async function TeamPage({
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-gray-800 font-medium bg-white hover:bg-gray-100 active:bg-gray-200 px-4 py-2.5 rounded-lg border border-gray-200 transition-all duration-150"
+                  className="text-base sm:text-sm text-gray-800 font-medium bg-white hover:bg-gray-100 active:bg-gray-200 px-5 py-3 sm:px-4 sm:py-2.5 rounded-lg border border-gray-200 transition-all duration-150"
                 >
                   {link.name}
                 </a>
@@ -106,7 +106,7 @@ export default async function TeamPage({
         {/* Tools Section */}
         {filteredTools.length > 0 && (
           <section className="mb-10">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Tools</h2>
+            <h2 className="text-xl sm:text-lg font-semibold text-gray-900 mb-4">Tools</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {filteredTools.map((tool) => {
                 const isDisabled = "disabled" in tool && tool.disabled;
@@ -160,7 +160,7 @@ export default async function TeamPage({
         {/* Quick Links */}
         {filteredLinks.length > 0 && (
           <section className="mb-10">
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">
+            <h2 className="text-xl sm:text-lg font-semibold text-gray-900 mb-3">
               Links
             </h2>
             <div className="flex flex-wrap items-center gap-1 -ml-2">
@@ -168,7 +168,7 @@ export default async function TeamPage({
                 <span key={link.name} className="flex items-center">
                   <a
                     href={link.href}
-                    className="text-sm text-blue-600 hover:text-blue-800 hover:underline px-2 py-1 rounded transition-colors"
+                    className="text-base sm:text-sm text-blue-600 hover:text-blue-800 hover:underline px-2 py-2 sm:py-1 rounded transition-colors"
                   >
                     {link.name}
                   </a>
@@ -184,7 +184,7 @@ export default async function TeamPage({
         {/* HR Section - only on team homepage */}
         {activeTeam === "team" && (
           <section className="mb-10">
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">General</h2>
+            <h2 className="text-xl sm:text-lg font-semibold text-gray-900 mb-3">General</h2>
             <div className="flex flex-wrap gap-3">
               {hrLinks.map((link) => (
                 <a
@@ -192,7 +192,7 @@ export default async function TeamPage({
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-gray-800 font-medium bg-white hover:bg-gray-100 active:bg-gray-200 px-4 py-2.5 rounded-lg border border-gray-200 transition-all duration-150"
+                  className="text-base sm:text-sm text-gray-800 font-medium bg-white hover:bg-gray-100 active:bg-gray-200 px-5 py-3 sm:px-4 sm:py-2.5 rounded-lg border border-gray-200 transition-all duration-150"
                 >
                   {link.name}
                 </a>

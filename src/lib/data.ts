@@ -70,7 +70,7 @@ export const quickLinks: { name: string; href: string; teams: TeamSlug[] }[] = [
 
 export const hrLinks = [
   {
-    name: "Benefits and Payroll",
+    name: "Benefits & Payroll",
     href: "https://justworks.com/login",
   },
   {
