@@ -39,20 +39,20 @@ export const tools = [
 ];
 
 export const quickLinks: { name: string; href: string; teams: TeamSlug[] }[] = [
-  { name: "Asana", href: "#", teams: ["growth", "ops", "product"] },
-  { name: "Backend", href: "#", teams: ["ops", "product"] },
-  { name: "Claude", href: "#", teams: ["growth", "ops", "product"] },
-  { name: "Cursor", href: "#", teams: ["product"] },
-  { name: "Customer.io", href: "#", teams: ["ops"] },
-  { name: "Drive", href: "#", teams: ["growth", "ops", "product"] },
-  { name: "Figma", href: "#", teams: ["product"] },
-  { name: "Front", href: "#", teams: ["growth", "ops"] },
-  { name: "Gemini", href: "#", teams: ["ops", "product"] },
-  { name: "GitHub", href: "#", teams: ["product"] },
-  { name: "Hubspot", href: "#", teams: ["growth", "ops"] },
-  { name: "Prismic", href: "#", teams: ["growth", "product"] },
-  { name: "Quo", href: "#", teams: ["growth", "ops"] },
-  { name: "Slack", href: "#", teams: ["growth", "ops", "product"] },
+  { name: "Asana", href: "https://app.asana.com", teams: ["growth", "ops", "product"] },
+  { name: "Backend", href: "https://backend.ordoschools.app", teams: ["ops", "product"] },
+  { name: "Claude", href: "https://claude.ai", teams: ["growth", "ops", "product"] },
+  { name: "Cursor", href: "https://cursor.com", teams: ["product"] },
+  { name: "Customer.io", href: "https://fly.customer.io", teams: ["ops"] },
+  { name: "Drive", href: "https://drive.google.com", teams: ["growth", "ops", "product"] },
+  { name: "Figma", href: "https://figma.com", teams: ["product"] },
+  { name: "Front", href: "https://app.frontapp.com", teams: ["growth", "ops"] },
+  { name: "Gemini", href: "https://gemini.google.com", teams: ["ops", "product"] },
+  { name: "GitHub", href: "https://github.com", teams: ["product"] },
+  { name: "Hubspot", href: "https://app.hubspot.com", teams: ["growth", "ops"] },
+  { name: "Prismic", href: "https://prismic.io/dashboard", teams: ["growth", "product"] },
+  { name: "Quo", href: "https://app.quohealth.com", teams: ["growth", "ops"] },
+  { name: "Slack", href: "https://slack.com/signin", teams: ["growth", "ops", "product"] },
 ];
 
 export const hrLinks = [
