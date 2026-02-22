@@ -45,7 +45,7 @@ export default async function TeamPage({
               <img
                 src="/images/ordo-logo.svg"
                 alt="Ordo"
-                className="h-5 w-auto"
+                className="h-7 sm:h-5 w-auto"
               />
             </Link>
           </div>
