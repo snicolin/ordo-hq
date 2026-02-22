@@ -8,7 +8,7 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Ordo Team Homepage",
+  title: "Ordo HQ",
   description: "Ordo internal team portal",
   icons: {
     icon: "/images/favicon.svg",
