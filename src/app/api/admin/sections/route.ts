@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const { title, displayType, pageAssignments } = body;
+  const { title, hideTitle, displayType, pageAssignments } = body;
 
   if (!title || !displayType) {
     return NextResponse.json({ error: "title and displayType are required" }, { status: 400 });
@@ -37,13 +37,13 @@ export async function POST(req: Request) {
   const section = await prisma.section.create({
     data: {
       title,
+      hideTitle: !!hideTitle,
       displayType,
       ...(pageAssignments && {
         pages: {
-          create: pageAssignments.map((pa: { pageId: string; order: number; titleOverride?: string }) => ({
+          create: pageAssignments.map((pa: { pageId: string; order: number }) => ({
             pageId: pa.pageId,
             order: pa.order ?? 0,
-            titleOverride: pa.titleOverride,
           })),
         },
       }),
@@ -60,7 +60,7 @@ export async function PUT(req: Request) {
   }
 
   const body = await req.json();
-  const { id, title, displayType, pageAssignments } = body;
+  const { id, title, hideTitle, displayType, pageAssignments } = body;
 
   if (!id) {
     return NextResponse.json({ error: "id is required" }, { status: 400 });
@@ -70,6 +70,7 @@ export async function PUT(req: Request) {
     where: { id },
     data: {
       ...(title !== undefined && { title }),
+      ...(hideTitle !== undefined && { hideTitle: !!hideTitle }),
       ...(displayType !== undefined && { displayType }),
     },
   });
@@ -77,11 +78,10 @@ export async function PUT(req: Request) {
   if (pageAssignments) {
     await prisma.pageSection.deleteMany({ where: { sectionId: id } });
     await prisma.pageSection.createMany({
-      data: pageAssignments.map((pa: { pageId: string; order: number; titleOverride?: string }) => ({
+      data: pageAssignments.map((pa: { pageId: string; order: number }) => ({
         sectionId: id,
         pageId: pa.pageId,
         order: pa.order ?? 0,
-        titleOverride: pa.titleOverride,
       })),
     });
   }

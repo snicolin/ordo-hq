@@ -33,7 +33,7 @@ async function main() {
 
   // Bookmarks section (BUTTON) — one per page that has bookmarks
   const bookmarksSection = await prisma.section.create({
-    data: { title: "Bookmarks", displayType: DisplayType.BUTTON },
+    data: { title: "Bookmarks", hideTitle: true, displayType: DisplayType.BUTTON },
   });
 
   // Tools section (TILE)
@@ -53,38 +53,38 @@ async function main() {
 
   // -- PageSection assignments --
 
-  // HQ: Bookmarks (title override = "HQ"), Tools, Links, General
+  // HQ: Bookmarks, Tools, Links, General
   await prisma.pageSection.createMany({
     data: [
-      { pageId: hq.id, sectionId: bookmarksSection.id, order: 0, titleOverride: "HQ" },
+      { pageId: hq.id, sectionId: bookmarksSection.id, order: 0 },
       { pageId: hq.id, sectionId: toolsSection.id, order: 1 },
       { pageId: hq.id, sectionId: linksSection.id, order: 2 },
       { pageId: hq.id, sectionId: generalSection.id, order: 3 },
     ],
   });
 
-  // Growth: Bookmarks (title override = "Growth"), Tools, Links
+  // Growth: Bookmarks, Tools, Links
   await prisma.pageSection.createMany({
     data: [
-      { pageId: growth.id, sectionId: bookmarksSection.id, order: 0, titleOverride: "Growth" },
+      { pageId: growth.id, sectionId: bookmarksSection.id, order: 0 },
       { pageId: growth.id, sectionId: toolsSection.id, order: 1 },
       { pageId: growth.id, sectionId: linksSection.id, order: 2 },
     ],
   });
 
-  // Ops: Bookmarks (title override = "Ops"), Tools, Links
+  // Ops: Bookmarks, Tools, Links
   await prisma.pageSection.createMany({
     data: [
-      { pageId: ops.id, sectionId: bookmarksSection.id, order: 0, titleOverride: "Ops" },
+      { pageId: ops.id, sectionId: bookmarksSection.id, order: 0 },
       { pageId: ops.id, sectionId: toolsSection.id, order: 1 },
       { pageId: ops.id, sectionId: linksSection.id, order: 2 },
     ],
   });
 
-  // Product: Bookmarks (title override = "Product"), Tools, Links
+  // Product: Bookmarks, Tools, Links
   await prisma.pageSection.createMany({
     data: [
-      { pageId: product.id, sectionId: bookmarksSection.id, order: 0, titleOverride: "Product" },
+      { pageId: product.id, sectionId: bookmarksSection.id, order: 0 },
       { pageId: product.id, sectionId: toolsSection.id, order: 1 },
       { pageId: product.id, sectionId: linksSection.id, order: 2 },
     ],

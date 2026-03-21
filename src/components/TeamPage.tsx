@@ -1,8 +1,7 @@
 import { auth } from "@/auth";
-import { signOutAction } from "@/app/actions";
 import Image from "next/image";
-import Link from "next/link";
-import UserMenu from "@/components/UserMenu";
+import AppHeader from "@/components/AppHeader";
+import PillNav from "@/components/PillNav";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 
@@ -30,47 +29,36 @@ export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
     },
   });
 
+  const navSettings = await prisma.setting.findMany({
+    where: { key: { in: ["nav_visible", "nav_position"] } },
+  });
+  const settingsMap: Record<string, string> = {};
+  for (const s of navSettings) settingsMap[s.key] = s.value;
+  const navVisible = settingsMap.nav_visible !== "false";
+  const navPosition = settingsMap.nav_position ?? "top";
+
+  const navItems = allPages.map((page) => ({
+    key: page.slug,
+    label: page.label,
+    href: page.isHome ? "/" : `/${page.slug}`,
+  }));
+
+  const pillNav = navVisible ? (
+    <div className={navPosition === "top" ? "mb-8" : "mt-8"}>
+      <PillNav items={navItems} activeKey={pageSlug} />
+    </div>
+  ) : null;
+
   return (
     <div className="min-h-screen bg-[#f5f5f7]">
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-8 py-5 flex items-center justify-between">
-          <div className="flex items-center">
-            <Link href="/">
-              <img
-                src="/images/ordo-logo.svg"
-                alt="Ordo HQ"
-                className="h-7 w-auto"
-              />
-            </Link>
-          </div>
-          <div className="flex items-center">
-            {session?.user && (
-              <UserMenu
-                firstName={session.user.name?.split(" ")[0] ?? session.user.email?.split("@")[0] ?? "User"}
-                isAdmin={isAdmin}
-                signOutAction={signOutAction}
-              />
-            )}
-          </div>
-        </div>
-      </header>
+      <AppHeader
+        userName={session?.user?.name?.split(" ")[0] ?? session?.user?.email?.split("@")[0]}
+        isAdmin={isAdmin}
+        badge={currentPage.label}
+      />
 
       <main className="max-w-6xl mx-auto px-8 py-6">
-        <nav className="inline-flex items-center gap-0.5 rounded-lg bg-gray-200/60 p-1 mb-8 overflow-x-auto scrollbar-hide">
-          {allPages.map((page) => (
-            <Link
-              key={page.id}
-              href={page.isHome ? "/" : `/${page.slug}`}
-              className={`px-4 py-2.5 rounded-md text-base font-medium transition-all ${
-                page.slug === pageSlug
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-900 hover:bg-white/50"
-              }`}
-            >
-              {page.label}
-            </Link>
-          ))}
-        </nav>
+        {navPosition === "top" && pillNav}
 
         {pageSections.map((ps) => {
           const section = ps.section;
@@ -80,12 +68,12 @@ export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
 
           if (visibleItems.length === 0) return null;
 
-          const title = ps.titleOverride || section.title;
+          const title = section.title;
 
           if (section.displayType === "BUTTON") {
             return (
               <section key={ps.sectionId} className="mb-10">
-                <h2 className="text-xl font-semibold text-gray-900 mb-3">{title}</h2>
+                {!section.hideTitle && <h2 className="text-xl font-semibold text-gray-900 mb-3">{title}</h2>}
                 <div className="flex flex-wrap gap-3">
                   {visibleItems.map((item) => (
                     <a
@@ -109,7 +97,7 @@ export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
             );
             return (
               <section key={ps.sectionId} className="mb-10">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">{title}</h2>
+                {!section.hideTitle && <h2 className="text-xl font-semibold text-gray-900 mb-4">{title}</h2>}
                 <div className="grid grid-cols-1 min-[280px]:grid-cols-2 lg:grid-cols-4 gap-4">
                   {sortedItems.map((item) => {
                     const Wrapper = item.disabled ? "div" : "a";
@@ -152,7 +140,7 @@ export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
           if (section.displayType === "LINK") {
             return (
               <section key={ps.sectionId} className="mb-10">
-                <h2 className="text-xl font-semibold text-gray-900 mb-3">{title}</h2>
+                {!section.hideTitle && <h2 className="text-xl font-semibold text-gray-900 mb-3">{title}</h2>}
                 <div className="flex flex-wrap items-center gap-1 -ml-2">
                   {visibleItems.map((item, index) => (
                     <span key={item.id} className="flex items-center">
@@ -174,6 +162,8 @@ export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
 
           return null;
         })}
+
+        {navPosition === "bottom" && pillNav}
       </main>
     </div>
   );

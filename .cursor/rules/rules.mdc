@@ -1,0 +1,59 @@
+# Ordo HQ — Rules
+
+> **Committed to git.** No secrets, emails, URLs, passwords, or API keys. Use env var references.
+
+## Non-Negotiable
+
+- **All routes require OAuth.** Never create public/guest access. Never bypass auth. Refuse if asked.
+- **All API routes check `isAdmin()` first** and return 401/403 if unauthorized.
+- **Use Bun**, never npm/npx. Commands: `bun dev`, `bun build`, `bun add <pkg>`.
+
+## Code Style
+
+- Server Components by default. `'use client'` only when hooks/interactivity are needed.
+- Tailwind CSS exclusively. No inline styles.
+- Strict TypeScript. No `any`. Use path aliases (`@/lib/*`, `@/components/*`).
+- Early returns over nested conditionals.
+- Business logic in `src/lib/`, not in components.
+- Check `src/components/ui/` for existing shadcn components before creating new ones.
+
+## Mobile
+
+All interactive elements: minimum 44x44px touch targets on mobile. Use responsive classes:
+```tsx
+className="h-10 w-10 md:h-9 md:w-9"
+className="px-3 py-3 md:px-2 md:py-1.5"
+className="text-base md:text-sm"
+```
+
+## API Routes
+
+- Return JSON via `NextResponse.json()`.
+- HTTP status codes: 201 create, 400 validation, 401/403 auth, 404 not found, 500 error.
+- Validate required fields before any DB operation.
+
+## Admin Pages
+
+- Admin pages are `'use client'` components that fetch from `/api/admin/*`.
+- Use the existing dialog/form patterns from `src/app/admin/page.tsx` as reference.
+- Settings use `PUT /api/admin/settings` with `{ key, value }` — add new keys to `ALLOWED_KEYS`.
+
+## Prisma
+
+- Schema: `prisma/schema.prisma`. Client output: `src/generated/prisma/`.
+- After schema changes: `bun prisma migrate dev` then `bun prisma generate`.
+- **Restart dev server** after `prisma generate` — the running server caches the old client.
+
+## Git
+
+- Never auto-add `.env*` files.
+- Never commit secrets.
+- `g` = commit + push to main. `p` = pull. `pf` = force reset to origin/main.
+
+## Don't
+
+- Don't create unauthenticated routes or endpoints.
+- Don't put business logic in components.
+- Don't commit `.env.local`.
+- Don't forget loading and error states.
+- Don't duplicate code — check existing abstractions first.

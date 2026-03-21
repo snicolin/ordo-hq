@@ -138,5 +138,6 @@ body {
   }
   html {
     @apply font-sans;
+    background-color: #f5f5f7;
   }
 }

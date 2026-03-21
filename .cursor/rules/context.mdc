@@ -1,0 +1,67 @@
+# Ordo HQ — Project Context
+
+> **Committed to git.** No secrets, emails, URLs, passwords, or API keys. Use env var references.
+
+Internal team portal for Ordo. Authenticated users see pages of organized links/tools grouped into sections.
+
+## Tech Stack
+
+- **Runtime**: Bun (not npm/npx)
+- **Framework**: Next.js 16 (App Router)
+- **UI**: React 19, Tailwind CSS v4, shadcn/ui components in `src/components/ui/`
+- **Auth**: NextAuth v5 — Google OAuth, domain-restricted (see `src/auth.ts`)
+- **Database**: PostgreSQL via Prisma (schema: `prisma/schema.prisma`, client: `src/generated/prisma/`)
+- **Deployment**: Vercel (push to `main` auto-deploys)
+
+## Architecture
+
+```
+src/
+├── app/
+│   ├── page.tsx              # Home — renders TeamPage for the isHome page
+│   ├── [slug]/page.tsx       # Dynamic pages — renders TeamPage by slug
+│   ├── admin/                # Admin panel (Content, Users, Settings tabs)
+│   │   ├── page.tsx          # Content: pages, sections, items CRUD
+│   │   ├── users/page.tsx    # Users: user mgmt, groups, homepage routing
+│   │   ├── settings/page.tsx # Settings: nav visibility/position
+│   │   └── AdminNav.tsx      # Admin tab navigation
+│   ├── signin/               # NextAuth sign-in page
+│   └── api/admin/            # Admin API routes (all require isAdmin)
+│       ├── pages/            # CRUD for Page model
+│       ├── sections/         # CRUD for Section model
+│       ├── items/            # CRUD for Item model
+│       ├── reorder/          # Reorder pages/sections/items
+│       ├── groups/           # CRUD for Group model
+│       ├── users/            # User management
+│       ├── settings/         # Key-value settings (GET/PUT)
+│       └── upload/           # Image upload
+├── components/
+│   ├── TeamPage.tsx          # Main page renderer (server component)
+│   ├── AppHeader.tsx         # Site header with logo, badge, user menu
+│   ├── PillNav.tsx           # Pill-style tab navigation
+│   ├── UserMenu.tsx          # User dropdown menu
+│   └── ui/                   # shadcn/ui primitives
+├── lib/
+│   ├── prisma.ts             # Prisma client singleton
+│   ├── admin.ts              # isAdmin() helper
+│   ├── storage.ts            # File storage helpers
+│   └── utils.ts              # General utilities
+└── auth.ts                   # NextAuth config
+```
+
+## Data Model
+
+- **Page** — a named tab (e.g. HQ, Growth, Ops). Has a slug, order, and optional isHome flag.
+- **Section** — a group of items with a title, displayType (BUTTON/LINK/TILE), and hideTitle toggle.
+- **PageSection** — join table assigning sections to pages with ordering.
+- **Item** — a link/tool with name, href, description, image, disabled flag, and order.
+- **ItemPage** — join table controlling which items appear on which pages.
+- **Group** — user groups with optional default page (for per-group homepage routing).
+- **Setting** — key-value config (homepage_mode, nav_visible, nav_position).
+
+## Key Patterns
+
+- **TeamPage** is a server component that queries Prisma directly — no API call needed.
+- **Admin pages** are client components that fetch from `/api/admin/*` routes.
+- All admin API routes check `isAdmin()` and return 403 if not authorized.
+- Settings use a generic key-value model with an `ALLOWED_KEYS` whitelist in the API route.

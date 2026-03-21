@@ -1,7 +1,47 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  MoreHorizontal,
+  ChevronUp,
+  ChevronDown,
+  ChevronRight,
+  Plus,
+  Pencil,
+  Trash2,
+  Home,
+  EyeOff,
+  Eye,
+  Upload,
+  ImageIcon,
+  X,
+} from "lucide-react";
 
 type Page = {
   id: string;
@@ -9,31 +49,23 @@ type Page = {
   slug: string;
   order: number;
   isHome: boolean;
-  sections?: PageSectionWithSection[];
+  sections?: PageSectionJoin[];
 };
 
 type Section = {
   id: string;
   title: string;
+  hideTitle: boolean;
   displayType: "BUTTON" | "LINK" | "TILE";
   items?: Item[];
-  pages?: PageSectionWithPage[];
+  pages?: { pageId: string; sectionId: string; order: number; page: Page }[];
 };
 
-type PageSectionWithSection = {
+type PageSectionJoin = {
   pageId: string;
   sectionId: string;
   order: number;
-  titleOverride: string | null;
   section: Section;
-};
-
-type PageSectionWithPage = {
-  pageId: string;
-  sectionId: string;
-  order: number;
-  titleOverride: string | null;
-  page: Page;
 };
 
 type Item = {
@@ -49,36 +81,21 @@ type Item = {
   section?: Section;
 };
 
-type User = {
-  id: string;
-  email: string;
-  name: string | null;
-  image: string | null;
-  isAdmin: boolean;
-  isEnvAdmin: boolean;
-  defaultPageId: string | null;
-  defaultPage: Page | null;
-  lastLogin: string;
-};
-
-type Tab = "pages" | "sections" | "items" | "users";
-
-export default function AdminPage() {
-  const [tab, setTab] = useState<Tab>("pages");
+export default function AdminContentPage() {
   const [pages, setPages] = useState<Page[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
   const [selectedPageId, setSelectedPageId] = useState<string>("");
-  const [selectedSectionId, setSelectedSectionId] = useState<string>("");
-  const [items, setItems] = useState<Item[]>([]);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [sectionItems, setSectionItems] = useState<Record<string, Item[]>>({});
   const [loading, setLoading] = useState(true);
 
   const [editingPage, setEditingPage] = useState<Partial<Page> | null>(null);
-  const [editingSection, setEditingSection] = useState<Partial<Section & { pageAssignments?: { pageId: string; order: number; titleOverride?: string }[] }> | null>(null);
+  const [editingSection, setEditingSection] = useState<Partial<Section & { pageAssignments?: { pageId: string; order: number }[] }> | null>(null);
   const [editingItem, setEditingItem] = useState<Partial<Item & { pageIds?: string[] }> | null>(null);
+  const [editingSectionId, setEditingSectionId] = useState<string>("");
 
-  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
-  const [bulkDefaultPageId, setBulkDefaultPageId] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   const fetchPages = useCallback(async () => {
     const res = await fetch("/api/admin/pages");
@@ -96,39 +113,38 @@ export default function AdminPage() {
     if (res.ok) setSections(await res.json());
   }, []);
 
-  const fetchItems = useCallback(async () => {
-    if (!selectedSectionId || !selectedPageId) {
-      setItems([]);
-      return;
+  const fetchItemsForSection = useCallback(async (sectionId: string, pageId: string) => {
+    const res = await fetch(`/api/admin/items?sectionId=${sectionId}&pageId=${pageId}`);
+    if (res.ok) {
+      const data = await res.json();
+      setSectionItems((prev) => ({ ...prev, [sectionId]: data }));
     }
-    const res = await fetch(`/api/admin/items?sectionId=${selectedSectionId}&pageId=${selectedPageId}`);
-    if (res.ok) setItems(await res.json());
-  }, [selectedSectionId, selectedPageId]);
-
-  const fetchUsers = useCallback(async () => {
-    const res = await fetch("/api/admin/users");
-    if (res.ok) setUsers(await res.json());
   }, []);
 
   useEffect(() => {
-    Promise.all([fetchPages(), fetchSections(), fetchUsers()]).then(() => setLoading(false));
-  }, [fetchPages, fetchSections, fetchUsers]);
+    Promise.all([fetchPages(), fetchSections()]).then(() => setLoading(false));
+  }, [fetchPages, fetchSections]);
 
   useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
+    if (!selectedPageId) return;
+    expandedSections.forEach((sectionId) => {
+      fetchItemsForSection(sectionId, selectedPageId);
+    });
+  }, [expandedSections, selectedPageId, fetchItemsForSection]);
 
   const pageSections = pages
     .find((p) => p.id === selectedPageId)
     ?.sections?.sort((a, b) => a.order - b.order) ?? [];
 
-  useEffect(() => {
-    if (pageSections.length > 0 && !selectedSectionId) {
-      setSelectedSectionId(pageSections[0].sectionId);
-    }
-  }, [pageSections, selectedSectionId]);
+  function toggleSection(sectionId: string) {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) next.delete(sectionId);
+      else next.add(sectionId);
+      return next;
+    });
+  }
 
-  // --- Page CRUD ---
   async function savePage() {
     if (!editingPage) return;
     const method = editingPage.id ? "PUT" : "POST";
@@ -146,6 +162,16 @@ export default function AdminPage() {
   async function deletePage(id: string) {
     if (!confirm("Delete this page? Sections and items will remain but lose this page assignment.")) return;
     await fetch(`/api/admin/pages?id=${id}`, { method: "DELETE" });
+    if (selectedPageId === id) setSelectedPageId("");
+    await fetchPages();
+  }
+
+  async function setAsHome(id: string) {
+    await fetch("/api/admin/pages", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, isHome: true }),
+    });
     await fetchPages();
   }
 
@@ -154,7 +180,6 @@ export default function AdminPage() {
     if (idx < 0) return;
     const swapIdx = direction === "up" ? idx - 1 : idx + 1;
     if (swapIdx < 0 || swapIdx >= pages.length) return;
-
     await fetch("/api/admin/reorder", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -169,7 +194,6 @@ export default function AdminPage() {
     await fetchPages();
   }
 
-  // --- Section CRUD ---
   async function saveSection() {
     if (!editingSection) return;
     const method = editingSection.id ? "PUT" : "POST";
@@ -195,7 +219,6 @@ export default function AdminPage() {
     if (idx < 0) return;
     const swapIdx = direction === "up" ? idx - 1 : idx + 1;
     if (swapIdx < 0 || swapIdx >= pageSections.length) return;
-
     await fetch("/api/admin/reorder", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -210,13 +233,12 @@ export default function AdminPage() {
     await fetchPages();
   }
 
-  // --- Item CRUD ---
   async function saveItem() {
     if (!editingItem) return;
     const method = editingItem.id ? "PUT" : "POST";
     const payload = {
       ...editingItem,
-      sectionId: editingItem.sectionId || selectedSectionId,
+      sectionId: editingItem.sectionId || editingSectionId,
     };
     const res = await fetch("/api/admin/items", {
       method,
@@ -225,22 +247,40 @@ export default function AdminPage() {
     });
     if (res.ok) {
       setEditingItem(null);
-      await fetchItems();
+      const sid = editingItem.sectionId || editingSectionId;
+      if (sid && selectedPageId) {
+        await fetchItemsForSection(sid, selectedPageId);
+      }
+      await Promise.all([fetchPages(), fetchSections()]);
     }
   }
 
-  async function deleteItem(id: string) {
-    if (!confirm("Delete this item?")) return;
-    await fetch(`/api/admin/items?id=${id}`, { method: "DELETE" });
-    await fetchItems();
+  async function deleteItem(item: Item) {
+    if (!confirm(`Delete "${item.name}"?`)) return;
+    await fetch(`/api/admin/items?id=${item.id}`, { method: "DELETE" });
+    if (selectedPageId) {
+      await fetchItemsForSection(item.sectionId, selectedPageId);
+    }
+    await Promise.all([fetchPages(), fetchSections()]);
   }
 
-  async function reorderItems(id: string, direction: "up" | "down") {
-    const idx = items.findIndex((i) => i.id === id);
+  async function toggleItemDisabled(item: Item) {
+    await fetch("/api/admin/items", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: item.id, disabled: !item.disabled }),
+    });
+    if (selectedPageId) {
+      await fetchItemsForSection(item.sectionId, selectedPageId);
+    }
+  }
+
+  async function reorderItems(sectionId: string, itemId: string, direction: "up" | "down") {
+    const items = sectionItems[sectionId] ?? [];
+    const idx = items.findIndex((i) => i.id === itemId);
     if (idx < 0) return;
     const swapIdx = direction === "up" ? idx - 1 : idx + 1;
     if (swapIdx < 0 || swapIdx >= items.length) return;
-
     await fetch("/api/admin/reorder", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -252,624 +292,383 @@ export default function AdminPage() {
         ],
       }),
     });
-    await fetchItems();
-  }
-
-  // --- User actions ---
-  async function toggleAdmin(userId: string, newStatus: boolean) {
-    await fetch("/api/admin/users", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "toggleAdmin", userId, isAdmin: newStatus }),
-    });
-    await fetchUsers();
-  }
-
-  async function setUserDefaultPage(userId: string, defaultPageId: string | null) {
-    await fetch("/api/admin/users", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "setDefaultPage", userId, defaultPageId }),
-    });
-    await fetchUsers();
-  }
-
-  async function bulkSetDefaultPage() {
-    if (selectedUserIds.size === 0) return;
-    await fetch("/api/admin/users", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "bulkSetDefaultPage",
-        userIds: Array.from(selectedUserIds),
-        defaultPageId: bulkDefaultPageId || null,
-      }),
-    });
-    setSelectedUserIds(new Set());
-    await fetchUsers();
-  }
-
-  function toggleUserSelection(userId: string) {
-    setSelectedUserIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(userId)) next.delete(userId);
-      else next.add(userId);
-      return next;
-    });
-  }
-
-  function toggleSelectAll() {
-    if (selectedUserIds.size === users.length) {
-      setSelectedUserIds(new Set());
-    } else {
-      setSelectedUserIds(new Set(users.map((u) => u.id)));
+    if (selectedPageId) {
+      await fetchItemsForSection(sectionId, selectedPageId);
     }
   }
 
+  async function handleImageUpload(file: File) {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/admin/upload", { method: "POST", body: formData });
+      if (res.ok) {
+        const { url } = await res.json();
+        setEditingItem((prev) => ({ ...prev, image: url }));
+      }
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  const currentSectionDisplayType = editingItem?.sectionId
+    ? sections.find((s) => s.id === editingItem.sectionId)?.displayType
+    : sections.find((s) => s.id === editingSectionId)?.displayType;
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center">
-        <p className="text-gray-500">Loading...</p>
+      <div className="flex items-center justify-center py-12">
+        <p className="text-muted-foreground text-sm">Loading...</p>
       </div>
     );
   }
 
-  const tabs: { key: Tab; label: string }[] = [
-    { key: "pages", label: "Pages" },
-    { key: "sections", label: "Sections" },
-    { key: "items", label: "Items" },
-    { key: "users", label: "Users" },
-  ];
-
-  const currentSectionDisplayType = sections.find((s) => s.id === selectedSectionId)?.displayType;
-
   return (
-    <div className="min-h-screen bg-[#f5f5f7]">
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-8 py-5 flex items-center justify-between">
-          <div className="flex items-end gap-3">
-            <Link href="/">
-              <img src="/images/ordo-logo.svg" alt="Ordo HQ" className="h-7 sm:h-5 w-auto" />
-            </Link>
-            <span className="text-sm text-gray-400 font-medium leading-none mb-px">Admin</span>
-          </div>
-          <Link
-            href="/"
-            className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
-          >
-            &larr; Back
-          </Link>
-        </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-8 py-6">
-        <nav className="inline-flex items-center gap-0.5 rounded-lg bg-gray-200/60 p-1 mb-8">
-          {tabs.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`px-4 py-2.5 sm:px-3 sm:py-1.5 rounded-md text-base sm:text-sm font-medium transition-all cursor-pointer ${
-                tab === t.key
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-900 hover:bg-white/50"
-              }`}
+    <>
+      <div className="space-y-8">
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold text-foreground">Pages</h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="cursor-pointer"
+              onClick={() => setEditingPage({ label: "", slug: "", isHome: false })}
             >
-              {t.label}
-            </button>
-          ))}
-        </nav>
-
-        {/* --- PAGES TAB --- */}
-        {tab === "pages" && (
-          <div className="space-y-8">
-            <section>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Pages</h2>
-                <button
-                  onClick={() => setEditingPage({ label: "", slug: "", isHome: false })}
-                  className="text-sm text-blue-600 hover:text-blue-800 cursor-pointer"
-                >
-                  + Add Page
-                </button>
-              </div>
-              <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-                {pages.map((page, idx) => (
-                  <div key={page.id} className="flex items-center px-4 py-3 gap-3">
-                    <div className="flex flex-col gap-0.5">
-                      <button
-                        onClick={() => reorderPages(page.id, "up")}
-                        disabled={idx === 0}
-                        className="text-gray-400 hover:text-gray-600 disabled:opacity-20 text-xs cursor-pointer disabled:cursor-default"
-                      >
-                        ▲
-                      </button>
-                      <button
-                        onClick={() => reorderPages(page.id, "down")}
-                        disabled={idx === pages.length - 1}
-                        className="text-gray-400 hover:text-gray-600 disabled:opacity-20 text-xs cursor-pointer disabled:cursor-default"
-                      >
-                        ▼
-                      </button>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="font-medium text-sm text-gray-900">{page.label}</span>
-                      <span className="text-xs text-gray-400 ml-2">/{page.slug === "team" ? "" : page.slug}</span>
-                    </div>
-                    {page.isHome && (
-                      <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-medium">Home</span>
-                    )}
-                    <button
-                      onClick={() => setEditingPage(page)}
-                      className="text-xs text-gray-500 hover:text-gray-900 cursor-pointer"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => deletePage(page.id)}
-                      className="text-xs text-red-400 hover:text-red-600 cursor-pointer"
-                    >
-                      Del
-                    </button>
-                  </div>
-                ))}
-                {pages.length === 0 && (
-                  <div className="px-4 py-8 text-center text-sm text-gray-400">
-                    No pages yet. Add one to get started.
-                  </div>
-                )}
-              </div>
-            </section>
-
-            <section>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-lg font-semibold text-gray-900">Sections on</h2>
-                  <select
-                    value={selectedPageId}
-                    onChange={(e) => {
-                      setSelectedPageId(e.target.value);
-                      setSelectedSectionId("");
-                    }}
-                    className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white"
-                  >
-                    {pages.map((p) => (
-                      <option key={p.id} value={p.id}>{p.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <button
-                  onClick={() =>
-                    setEditingSection({
-                      title: "",
-                      displayType: "BUTTON",
-                      pageAssignments: selectedPageId ? [{ pageId: selectedPageId, order: pageSections.length }] : [],
-                    })
-                  }
-                  className="text-sm text-blue-600 hover:text-blue-800 cursor-pointer"
-                >
-                  + Add Section
-                </button>
-              </div>
-              <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-                {pageSections.map((ps, idx) => (
-                  <div
-                    key={ps.sectionId}
-                    onClick={() => setSelectedSectionId(ps.sectionId)}
-                    className={`flex items-center px-4 py-3 gap-3 cursor-pointer transition-colors ${
-                      selectedSectionId === ps.sectionId ? "bg-blue-50" : "hover:bg-gray-50"
-                    }`}
-                  >
-                    <div className="flex flex-col gap-0.5">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); reorderPageSections(ps.sectionId, "up"); }}
-                        disabled={idx === 0}
-                        className="text-gray-400 hover:text-gray-600 disabled:opacity-20 text-xs cursor-pointer disabled:cursor-default"
-                      >
-                        ▲
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); reorderPageSections(ps.sectionId, "down"); }}
-                        disabled={idx === pageSections.length - 1}
-                        className="text-gray-400 hover:text-gray-600 disabled:opacity-20 text-xs cursor-pointer disabled:cursor-default"
-                      >
-                        ▼
-                      </button>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="font-medium text-sm text-gray-900">
-                        &ldquo;{ps.titleOverride || ps.section.title}&rdquo;
-                      </span>
-                      <span className="text-xs text-gray-400 ml-2">
-                        Type: {ps.section.displayType}
-                      </span>
-                      <span className="text-xs text-gray-400 ml-2">
-                        {ps.section.items?.length ?? 0} items
-                      </span>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const sec = sections.find((s) => s.id === ps.sectionId);
-                        if (sec) {
-                          setEditingSection({
-                            ...sec,
-                            pageAssignments: sec.pages?.map((p) => ({
-                              pageId: p.pageId,
-                              order: p.order,
-                              titleOverride: p.titleOverride ?? undefined,
-                            })),
-                          });
-                        }
-                      }}
-                      className="text-xs text-gray-500 hover:text-gray-900 cursor-pointer"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); deleteSection(ps.sectionId); }}
-                      className="text-xs text-red-400 hover:text-red-600 cursor-pointer"
-                    >
-                      Del
-                    </button>
-                  </div>
-                ))}
-                {pageSections.length === 0 && (
-                  <div className="px-4 py-8 text-center text-sm text-gray-400">
-                    No sections on this page.
-                  </div>
-                )}
-              </div>
-            </section>
-
-            <section>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Items in &ldquo;{pageSections.find((ps) => ps.sectionId === selectedSectionId)?.titleOverride || sections.find((s) => s.id === selectedSectionId)?.title || "..."}&rdquo;
-                </h2>
-                <button
-                  onClick={() =>
-                    setEditingItem({
-                      name: "",
-                      href: "",
-                      description: "",
-                      image: "",
-                      disabled: false,
-                      sectionId: selectedSectionId,
-                      pageIds: [selectedPageId],
-                    })
-                  }
-                  disabled={!selectedSectionId}
-                  className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-40 cursor-pointer disabled:cursor-default"
-                >
-                  + Add Item
-                </button>
-              </div>
-              <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-                {items.map((item, idx) => (
-                  <div key={item.id} className="flex items-center px-4 py-3 gap-3">
-                    <div className="flex flex-col gap-0.5">
-                      <button
-                        onClick={() => reorderItems(item.id, "up")}
-                        disabled={idx === 0}
-                        className="text-gray-400 hover:text-gray-600 disabled:opacity-20 text-xs cursor-pointer disabled:cursor-default"
-                      >
-                        ▲
-                      </button>
-                      <button
-                        onClick={() => reorderItems(item.id, "down")}
-                        disabled={idx === items.length - 1}
-                        className="text-gray-400 hover:text-gray-600 disabled:opacity-20 text-xs cursor-pointer disabled:cursor-default"
-                      >
-                        ▼
-                      </button>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className={`font-medium text-sm ${item.disabled ? "text-gray-400" : "text-gray-900"}`}>
-                        {item.name}
-                      </span>
-                      <span className="text-xs text-gray-400 ml-2 truncate">
-                        {item.href.length > 30 ? item.href.slice(0, 30) + "..." : item.href}
-                      </span>
-                      {item.disabled && (
-                        <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded ml-2">disabled</span>
-                      )}
-                    </div>
-                    <button
-                      onClick={() =>
-                        setEditingItem({
-                          ...item,
-                          pageIds: item.pages?.map((p) => p.pageId) ?? [],
-                        })
-                      }
-                      className="text-xs text-gray-500 hover:text-gray-900 cursor-pointer"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => deleteItem(item.id)}
-                      className="text-xs text-red-400 hover:text-red-600 cursor-pointer"
-                    >
-                      Del
-                    </button>
-                  </div>
-                ))}
-                {items.length === 0 && selectedSectionId && (
-                  <div className="px-4 py-8 text-center text-sm text-gray-400">
-                    No items in this section on this page.
-                  </div>
-                )}
-              </div>
-            </section>
+              <Plus className="h-4 w-4 mr-1" /> Add Page
+            </Button>
           </div>
-        )}
-
-        {/* --- USERS TAB --- */}
-        {tab === "users" && (
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Users</h2>
-            <div className="flex items-center gap-3 mb-4 flex-wrap">
-              <label className="flex items-center gap-2 text-sm text-gray-600">
-                <input
-                  type="checkbox"
-                  checked={selectedUserIds.size === users.length && users.length > 0}
-                  onChange={toggleSelectAll}
-                  className="rounded"
-                />
-                Select all
-              </label>
-              <select
-                value={bulkDefaultPageId}
-                onChange={(e) => setBulkDefaultPageId(e.target.value)}
-                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white"
+          <div className="bg-white rounded-xl border border-border divide-y divide-border">
+            {pages.map((page, idx) => (
+              <div
+                key={page.id}
+                onClick={() => setSelectedPageId(page.id)}
+                className={`flex items-center gap-3 px-4 py-3 min-h-[48px] cursor-pointer transition-colors ${
+                  selectedPageId === page.id ? "bg-accent" : "hover:bg-muted"
+                }`}
               >
-                <option value="">-- (Home)</option>
-                {pages.filter((p) => !p.isHome).map((p) => (
-                  <option key={p.id} value={p.id}>{p.label}</option>
-                ))}
-              </select>
-              <button
-                onClick={bulkSetDefaultPage}
-                disabled={selectedUserIds.size === 0}
-                className="text-sm bg-gray-900 text-white px-4 py-1.5 rounded-lg hover:bg-gray-800 disabled:opacity-40 cursor-pointer disabled:cursor-default transition-colors"
-              >
-                Apply
-              </button>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-              {users.map((user) => (
-                <div key={user.id} className="flex items-center px-4 py-3 gap-4 flex-wrap">
-                  <input
-                    type="checkbox"
-                    checked={selectedUserIds.has(user.id)}
-                    onChange={() => toggleUserSelection(user.id)}
-                    className="rounded"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <span className="font-medium text-sm text-gray-900">{user.name || "Unknown"}</span>
-                    <span className="text-xs text-gray-400 ml-2">{user.email}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {user.isEnvAdmin ? (
-                      <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-medium">Admin (env)</span>
-                    ) : user.isAdmin ? (
-                      <button
-                        onClick={() => toggleAdmin(user.id, false)}
-                        className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded font-medium hover:bg-green-100 cursor-pointer transition-colors"
-                      >
-                        Admin ✓
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => toggleAdmin(user.id, true)}
-                        className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded font-medium hover:bg-gray-200 cursor-pointer transition-colors"
-                      >
-                        Make Admin
-                      </button>
+                <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                  <span className="font-medium text-sm text-foreground">{page.label}</span>
+                  <span className="text-xs text-muted-foreground">/{page.slug === "team" ? "" : page.slug}</span>
+                  {page.isHome && <Badge variant="secondary" className="text-xs">Home</Badge>}
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    className="inline-flex items-center justify-center h-9 w-9 shrink-0 cursor-pointer rounded-lg hover:bg-muted transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem className="cursor-pointer" onClick={() => setEditingPage(page)}>
+                      <Pencil className="h-4 w-4 mr-2" /> Edit
+                    </DropdownMenuItem>
+                    {!page.isHome && (
+                      <DropdownMenuItem className="cursor-pointer" onClick={() => setAsHome(page.id)}>
+                        <Home className="h-4 w-4 mr-2" /> Set as Home
+                      </DropdownMenuItem>
                     )}
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-gray-400">Default:</span>
-                      <select
-                        value={user.defaultPageId || ""}
-                        onChange={(e) => setUserDefaultPage(user.id, e.target.value || null)}
-                        className="text-xs border border-gray-200 rounded px-2 py-1 bg-white"
-                      >
-                        <option value="">--</option>
-                        {pages.filter((p) => !p.isHome).map((p) => (
-                          <option key={p.id} value={p.id}>{p.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {users.length === 0 && (
-                <div className="px-4 py-8 text-center text-sm text-gray-400">
-                  No users have logged in yet.
-                </div>
-              )}
-            </div>
-            <p className="text-xs text-gray-400 mt-3">
-              This list builds automatically as people sign in. &ldquo;--&rdquo; means they land on the home page.
-            </p>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="cursor-pointer" disabled={idx === 0} onClick={() => reorderPages(page.id, "up")}>
+                      <ChevronUp className="h-4 w-4 mr-2" /> Move Up
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-pointer" disabled={idx === pages.length - 1} onClick={() => reorderPages(page.id, "down")}>
+                      <ChevronDown className="h-4 w-4 mr-2" /> Move Down
+                    </DropdownMenuItem>
+                    {!page.isHome && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => deletePage(page.id)}>
+                          <Trash2 className="h-4 w-4 mr-2" /> Delete
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ))}
+            {pages.length === 0 && (
+              <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                No pages yet. Add one to get started.
+              </div>
+            )}
           </div>
-        )}
+        </section>
 
-        {/* Sections and Items tabs show the same content as the Pages tab subsections */}
-        {tab === "sections" && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">All Sections</h2>
-              <button
+        {selectedPageId && (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-semibold text-foreground">
+                Sections on {pages.find((p) => p.id === selectedPageId)?.label}
+              </h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="cursor-pointer"
                 onClick={() =>
-                  setEditingSection({ title: "", displayType: "BUTTON", pageAssignments: [] })
+                  setEditingSection({
+                    title: "",
+                    displayType: "BUTTON",
+                    pageAssignments: [{ pageId: selectedPageId, order: pageSections.length }],
+                  })
                 }
-                className="text-sm text-blue-600 hover:text-blue-800 cursor-pointer"
               >
-                + Add Section
-              </button>
+                <Plus className="h-4 w-4 mr-1" /> Add Section
+              </Button>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-              {sections.map((sec) => (
-                <div key={sec.id} className="flex items-center px-4 py-3 gap-3">
-                  <div className="flex-1 min-w-0">
-                    <span className="font-medium text-sm text-gray-900">{sec.title}</span>
-                    <span className="text-xs text-gray-400 ml-2">Type: {sec.displayType}</span>
-                    <span className="text-xs text-gray-400 ml-2">{sec.items?.length ?? 0} items</span>
-                    <span className="text-xs text-gray-400 ml-2">
-                      on {sec.pages?.map((p) => p.page.label).join(", ") || "no pages"}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() =>
-                      setEditingSection({
-                        ...sec,
-                        pageAssignments: sec.pages?.map((p) => ({
-                          pageId: p.pageId,
-                          order: p.order,
-                          titleOverride: p.titleOverride ?? undefined,
-                        })),
-                      })
-                    }
-                    className="text-xs text-gray-500 hover:text-gray-900 cursor-pointer"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => deleteSection(sec.id)}
-                    className="text-xs text-red-400 hover:text-red-600 cursor-pointer"
-                  >
-                    Del
-                  </button>
-                </div>
-              ))}
-              {sections.length === 0 && (
-                <div className="px-4 py-8 text-center text-sm text-gray-400">No sections yet.</div>
-              )}
-            </div>
-          </div>
-        )}
+            <div className="bg-white rounded-xl border border-border divide-y divide-border">
+              {pageSections.map((ps, idx) => {
+                const isExpanded = expandedSections.has(ps.sectionId);
+                const items = sectionItems[ps.sectionId] ?? [];
+                const title = ps.section.title;
+                const itemCount = ps.section.items?.length ?? 0;
 
-        {tab === "items" && (
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Items in</h2>
-              <select
-                value={selectedSectionId}
-                onChange={(e) => setSelectedSectionId(e.target.value)}
-                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white"
-              >
-                <option value="">Select a section...</option>
-                {sections.map((s) => (
-                  <option key={s.id} value={s.id}>{s.title} ({s.displayType})</option>
-                ))}
-              </select>
-              <select
-                value={selectedPageId}
-                onChange={(e) => setSelectedPageId(e.target.value)}
-                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white"
-              >
-                {pages.map((p) => (
-                  <option key={p.id} value={p.id}>{p.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-              {items.map((item) => (
-                <div key={item.id} className="flex items-center px-4 py-3 gap-3">
-                  <div className="flex-1 min-w-0">
-                    <span className={`font-medium text-sm ${item.disabled ? "text-gray-400" : "text-gray-900"}`}>
-                      {item.name}
-                    </span>
-                    <span className="text-xs text-gray-400 ml-2 truncate">
-                      {item.href.length > 40 ? item.href.slice(0, 40) + "..." : item.href}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() =>
-                      setEditingItem({
-                        ...item,
-                        pageIds: item.pages?.map((p) => p.pageId) ?? [],
-                      })
-                    }
-                    className="text-xs text-gray-500 hover:text-gray-900 cursor-pointer"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => deleteItem(item.id)}
-                    className="text-xs text-red-400 hover:text-red-600 cursor-pointer"
-                  >
-                    Del
-                  </button>
-                </div>
-              ))}
-              {items.length === 0 && (
-                <div className="px-4 py-8 text-center text-sm text-gray-400">
-                  {selectedSectionId ? "No items match." : "Select a section above."}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* --- PAGE EDIT MODAL --- */}
-      {editingPage && (
-        <Modal onClose={() => setEditingPage(null)}>
-          <h3 className="text-base font-semibold text-gray-900 mb-4">
-            {editingPage.id ? "Edit Page" : "Add Page"}
-          </h3>
-          <div className="space-y-3">
-            <Field label="Label" value={editingPage.label ?? ""} onChange={(v) => setEditingPage({ ...editingPage, label: v })} />
-            <Field label="Slug" value={editingPage.slug ?? ""} onChange={(v) => setEditingPage({ ...editingPage, slug: v })} />
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={editingPage.isHome ?? false}
-                onChange={(e) => setEditingPage({ ...editingPage, isHome: e.target.checked })}
-              />
-              Home page
-            </label>
-          </div>
-          <div className="flex justify-end gap-3 mt-6">
-            <button onClick={() => setEditingPage(null)} className="text-sm text-gray-500 hover:text-gray-900 cursor-pointer">Cancel</button>
-            <button onClick={savePage} className="text-sm bg-gray-900 text-white px-4 py-1.5 rounded-lg hover:bg-gray-800 cursor-pointer">Save</button>
-          </div>
-        </Modal>
-      )}
-
-      {/* --- SECTION EDIT MODAL --- */}
-      {editingSection && (
-        <Modal onClose={() => setEditingSection(null)}>
-          <h3 className="text-base font-semibold text-gray-900 mb-4">
-            {editingSection.id ? "Edit Section" : "Add Section"}
-          </h3>
-          <div className="space-y-3">
-            <Field label="Title" value={editingSection.title ?? ""} onChange={(v) => setEditingSection({ ...editingSection, title: v })} />
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Display Type</label>
-              <select
-                value={editingSection.displayType ?? "BUTTON"}
-                onChange={(e) => setEditingSection({ ...editingSection, displayType: e.target.value as "BUTTON" | "LINK" | "TILE" })}
-                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white"
-              >
-                <option value="BUTTON">Button</option>
-                <option value="LINK">Link</option>
-                <option value="TILE">Tile</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Assigned to pages</label>
-              {pages.map((p) => {
-                const assignment = editingSection.pageAssignments?.find((pa) => pa.pageId === p.id);
                 return (
-                  <div key={p.id} className="flex items-center gap-2 mb-1">
-                    <input
-                      type="checkbox"
+                  <div key={ps.sectionId}>
+                    <div
+                      className="flex items-center gap-3 px-4 py-3 min-h-[48px] cursor-pointer hover:bg-muted transition-colors"
+                      onClick={() => toggleSection(ps.sectionId)}
+                    >
+                      <ChevronRight className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
+                      <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-sm text-foreground">{title}</span>
+                        <Badge variant="outline" className="text-xs font-normal">{ps.section.displayType}</Badge>
+                        {ps.section.hideTitle && <Badge variant="secondary" className="text-xs font-normal">hidden title</Badge>}
+                        <span className="text-xs text-muted-foreground">{itemCount} {itemCount === 1 ? "item" : "items"}</span>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          className="inline-flex items-center justify-center h-9 w-9 shrink-0 cursor-pointer rounded-lg hover:bg-muted transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem className="cursor-pointer" onClick={() => {
+                            const sec = sections.find((s) => s.id === ps.sectionId);
+                            if (sec) {
+                              setEditingSection({
+                                ...sec,
+                                pageAssignments: sec.pages?.map((p) => ({
+                                  pageId: p.pageId,
+                                  order: p.order,
+                                })),
+                              });
+                            }
+                          }}>
+                            <Pencil className="h-4 w-4 mr-2" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="cursor-pointer" onClick={() => {
+                            setEditingSectionId(ps.sectionId);
+                            setEditingItem({
+                              name: "",
+                              href: "",
+                              description: "",
+                              image: "",
+                              disabled: false,
+                              sectionId: ps.sectionId,
+                              pageIds: [selectedPageId],
+                            });
+                          }}>
+                            <Plus className="h-4 w-4 mr-2" /> Add Item
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="cursor-pointer" disabled={idx === 0} onClick={() => reorderPageSections(ps.sectionId, "up")}>
+                            <ChevronUp className="h-4 w-4 mr-2" /> Move Up
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="cursor-pointer" disabled={idx === pageSections.length - 1} onClick={() => reorderPageSections(ps.sectionId, "down")}>
+                            <ChevronDown className="h-4 w-4 mr-2" /> Move Down
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => deleteSection(ps.sectionId)}>
+                            <Trash2 className="h-4 w-4 mr-2" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="border-t border-border bg-muted/30">
+                        {items.map((item, itemIdx) => (
+                          <div
+                            key={item.id}
+                            className="flex items-center gap-3 pl-10 pr-4 py-2.5 min-h-[44px] hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`text-sm ${item.disabled ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                                  {item.name}
+                                </span>
+                                {item.disabled && <Badge variant="outline" className="text-xs">disabled</Badge>}
+                              </div>
+                              <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                {item.href}
+                              </p>
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger className="inline-flex items-center justify-center h-8 w-8 shrink-0 cursor-pointer rounded-lg hover:bg-muted transition-colors">
+                                <MoreHorizontal className="h-3.5 w-3.5" />
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem className="cursor-pointer" onClick={() => {
+                                  setEditingSectionId(item.sectionId);
+                                  setEditingItem({
+                                    ...item,
+                                    pageIds: item.pages?.map((p) => p.pageId) ?? [],
+                                  });
+                                }}>
+                                  <Pencil className="h-4 w-4 mr-2" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="cursor-pointer" onClick={() => toggleItemDisabled(item)}>
+                                  {item.disabled ? <Eye className="h-4 w-4 mr-2" /> : <EyeOff className="h-4 w-4 mr-2" />}
+                                  {item.disabled ? "Enable" : "Disable"}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="cursor-pointer" disabled={itemIdx === 0} onClick={() => reorderItems(ps.sectionId, item.id, "up")}>
+                                  <ChevronUp className="h-4 w-4 mr-2" /> Move Up
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="cursor-pointer" disabled={itemIdx === items.length - 1} onClick={() => reorderItems(ps.sectionId, item.id, "down")}>
+                                  <ChevronDown className="h-4 w-4 mr-2" /> Move Down
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => deleteItem(item)}>
+                                  <Trash2 className="h-4 w-4 mr-2" /> Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        ))}
+                        {items.length === 0 && (
+                          <div className="pl-10 pr-4 py-4 text-xs text-muted-foreground">
+                            No items on this page.
+                          </div>
+                        )}
+                        <div className="pl-10 pr-4 py-2 border-t border-border">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs cursor-pointer"
+                            onClick={() => {
+                              setEditingSectionId(ps.sectionId);
+                              setEditingItem({
+                                name: "",
+                                href: "",
+                                description: "",
+                                image: "",
+                                disabled: false,
+                                sectionId: ps.sectionId,
+                                pageIds: [selectedPageId],
+                              });
+                            }}
+                          >
+                            <Plus className="h-3 w-3 mr-1" /> Add Item
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {pageSections.length === 0 && (
+                <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  No sections on this page.
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+      </div>
+
+      {/* ============ PAGE DIALOG ============ */}
+      <Dialog open={!!editingPage} onOpenChange={(open) => !open && setEditingPage(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingPage?.id ? "Edit Page" : "Add Page"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="page-label">Label</Label>
+              <Input
+                id="page-label"
+                value={editingPage?.label ?? ""}
+                onChange={(e) => setEditingPage({ ...editingPage, label: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="page-slug">Slug</Label>
+              <Input
+                id="page-slug"
+                value={editingPage?.slug ?? ""}
+                onChange={(e) => setEditingPage({ ...editingPage, slug: e.target.value })}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="page-home"
+                checked={editingPage?.isHome ?? false}
+                onCheckedChange={(checked) => setEditingPage({ ...editingPage, isHome: !!checked })}
+              />
+              <Label htmlFor="page-home" className="cursor-pointer">Home page</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingPage(null)} className="cursor-pointer">Cancel</Button>
+            <Button onClick={savePage} className="cursor-pointer">Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ============ SECTION DIALOG ============ */}
+      <Dialog open={!!editingSection} onOpenChange={(open) => !open && setEditingSection(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingSection?.id ? "Edit Section" : "Add Section"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="section-title">Title</Label>
+              <Input
+                id="section-title"
+                value={editingSection?.title ?? ""}
+                onChange={(e) => setEditingSection({ ...editingSection, title: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Display Type</Label>
+              <Select
+                value={editingSection?.displayType ?? "BUTTON"}
+                onValueChange={(v) => setEditingSection({ ...editingSection, displayType: v as "BUTTON" | "LINK" | "TILE" })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BUTTON">Button</SelectItem>
+                  <SelectItem value="LINK">Link</SelectItem>
+                  <SelectItem value="TILE">Tile</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="section-hide-title"
+                checked={editingSection?.hideTitle ?? false}
+                onCheckedChange={(checked) => setEditingSection({ ...editingSection, hideTitle: !!checked })}
+              />
+              <Label htmlFor="section-hide-title" className="cursor-pointer">Hide title on page</Label>
+            </div>
+            <div className="space-y-2">
+              <Label>Assigned to pages</Label>
+              {pages.map((p) => {
+                const assignment = editingSection?.pageAssignments?.find((pa) => pa.pageId === p.id);
+                return (
+                  <div key={p.id} className="flex items-center gap-2">
+                    <Checkbox
                       checked={!!assignment}
-                      onChange={(e) => {
-                        const current = editingSection.pageAssignments ?? [];
-                        if (e.target.checked) {
+                      onCheckedChange={(checked) => {
+                        const current = editingSection?.pageAssignments ?? [];
+                        if (checked) {
                           setEditingSection({
                             ...editingSection,
                             pageAssignments: [...current, { pageId: p.id, order: current.length }],
@@ -882,116 +681,167 @@ export default function AdminPage() {
                         }
                       }}
                     />
-                    <span className="text-sm text-gray-700">{p.label}</span>
-                    {assignment && (
-                      <input
-                        type="text"
-                        placeholder="Title override"
-                        value={assignment.titleOverride ?? ""}
-                        onChange={(e) => {
-                          const current = editingSection.pageAssignments ?? [];
-                          setEditingSection({
-                            ...editingSection,
-                            pageAssignments: current.map((pa) =>
-                              pa.pageId === p.id ? { ...pa, titleOverride: e.target.value || undefined } : pa
-                            ),
-                          });
-                        }}
-                        className="text-xs border border-gray-200 rounded px-2 py-1 w-32"
-                      />
-                    )}
+                    <span className="text-sm">{p.label}</span>
                   </div>
                 );
               })}
             </div>
           </div>
-          <div className="flex justify-end gap-3 mt-6">
-            <button onClick={() => setEditingSection(null)} className="text-sm text-gray-500 hover:text-gray-900 cursor-pointer">Cancel</button>
-            <button onClick={saveSection} className="text-sm bg-gray-900 text-white px-4 py-1.5 rounded-lg hover:bg-gray-800 cursor-pointer">Save</button>
-          </div>
-        </Modal>
-      )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingSection(null)} className="cursor-pointer">Cancel</Button>
+            <Button onClick={saveSection} className="cursor-pointer">Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {/* --- ITEM EDIT MODAL --- */}
-      {editingItem && (
-        <Modal onClose={() => setEditingItem(null)}>
-          <h3 className="text-base font-semibold text-gray-900 mb-4">
-            {editingItem.id ? "Edit Item" : "Add Item"}
-          </h3>
-          <div className="space-y-3">
-            <Field label="Name" value={editingItem.name ?? ""} onChange={(v) => setEditingItem({ ...editingItem, name: v })} />
-            <Field label="URL" value={editingItem.href ?? ""} onChange={(v) => setEditingItem({ ...editingItem, href: v })} />
+      {/* ============ ITEM DIALOG ============ */}
+      <Dialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingItem?.id ? "Edit Item" : "Add Item"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="item-name">Name</Label>
+              <Input
+                id="item-name"
+                value={editingItem?.name ?? ""}
+                onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="item-url">URL</Label>
+              <Input
+                id="item-url"
+                value={editingItem?.href ?? ""}
+                onChange={(e) => setEditingItem({ ...editingItem, href: e.target.value })}
+              />
+            </div>
             {currentSectionDisplayType === "TILE" && (
               <>
-                <Field label="Description" value={editingItem.description ?? ""} onChange={(v) => setEditingItem({ ...editingItem, description: v })} />
-                <Field label="Image URL" value={editingItem.image ?? ""} onChange={(v) => setEditingItem({ ...editingItem, image: v })} />
+                <div className="space-y-2">
+                  <Label htmlFor="item-desc">Description</Label>
+                  <Input
+                    id="item-desc"
+                    value={editingItem?.description ?? ""}
+                    onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Image</Label>
+                  {editingItem?.image ? (
+                    <div className="relative group rounded-lg border border-border overflow-hidden">
+                      <img
+                        src={editingItem.image}
+                        alt="Preview"
+                        className="w-full h-32 object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-foreground text-xs font-medium rounded-md hover:bg-gray-100 transition-colors">
+                          <Upload className="h-3 w-3" />
+                          Replace
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) handleImageUpload(f);
+                            }}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-destructive text-xs font-medium rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
+                          onClick={() => setEditingItem({ ...editingItem, image: "" })}
+                        >
+                          <X className="h-3 w-3" />
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label
+                      className={`flex flex-col items-center justify-center h-28 rounded-lg border-2 border-dashed transition-colors cursor-pointer ${
+                        dragOver
+                          ? "border-foreground bg-accent"
+                          : "border-border hover:border-muted-foreground/40"
+                      } ${uploading ? "opacity-50 pointer-events-none" : ""}`}
+                      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                      onDragLeave={() => setDragOver(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setDragOver(false);
+                        const f = e.dataTransfer.files[0];
+                        if (f?.type.startsWith("image/")) handleImageUpload(f);
+                      }}
+                    >
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) handleImageUpload(f);
+                        }}
+                      />
+                      {uploading ? (
+                        <p className="text-xs text-muted-foreground">Uploading...</p>
+                      ) : (
+                        <>
+                          <ImageIcon className="h-5 w-5 text-muted-foreground mb-1.5" />
+                          <p className="text-xs text-muted-foreground">Drag image or click to upload</p>
+                          <p className="text-[10px] text-muted-foreground/60 mt-0.5">Recommended: 500 x 500px &middot; PNG or JPG</p>
+                        </>
+                      )}
+                    </label>
+                  )}
+                  <Input
+                    placeholder="Or paste image URL"
+                    value={editingItem?.image ?? ""}
+                    onChange={(e) => setEditingItem({ ...editingItem, image: e.target.value })}
+                    className="h-7 text-xs"
+                  />
+                </div>
               </>
             )}
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={editingItem.disabled ?? false}
-                onChange={(e) => setEditingItem({ ...editingItem, disabled: e.target.checked })}
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="item-disabled"
+                checked={editingItem?.disabled ?? false}
+                onCheckedChange={(checked) => setEditingItem({ ...editingItem, disabled: !!checked })}
               />
-              Disabled
-            </label>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Visible on pages</label>
-              <div className="flex flex-wrap gap-3">
+              <Label htmlFor="item-disabled" className="cursor-pointer">Disabled</Label>
+            </div>
+            <div className="space-y-2">
+              <Label>Visible on pages</Label>
+              <div className="flex flex-wrap gap-x-4 gap-y-2">
                 {pages.map((p) => (
-                  <label key={p.id} className="flex items-center gap-1.5 text-sm text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={editingItem.pageIds?.includes(p.id) ?? false}
-                      onChange={(e) => {
-                        const current = editingItem.pageIds ?? [];
+                  <div key={p.id} className="flex items-center gap-1.5">
+                    <Checkbox
+                      checked={editingItem?.pageIds?.includes(p.id) ?? false}
+                      onCheckedChange={(checked) => {
+                        const current = editingItem?.pageIds ?? [];
                         setEditingItem({
                           ...editingItem,
-                          pageIds: e.target.checked
+                          pageIds: checked
                             ? [...current, p.id]
                             : current.filter((id) => id !== p.id),
                         });
                       }}
                     />
-                    {p.label}
-                  </label>
+                    <span className="text-sm">{p.label}</span>
+                  </div>
                 ))}
               </div>
             </div>
           </div>
-          <div className="flex justify-end gap-3 mt-6">
-            <button onClick={() => setEditingItem(null)} className="text-sm text-gray-500 hover:text-gray-900 cursor-pointer">Cancel</button>
-            <button onClick={saveItem} className="text-sm bg-gray-900 text-white px-4 py-1.5 rounded-lg hover:bg-gray-800 cursor-pointer">Save</button>
-          </div>
-        </Modal>
-      )}
-    </div>
-  );
-}
-
-function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div
-        className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function Field({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <div>
-      <label className="block text-sm text-gray-600 mb-1">{label}</label>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
-      />
-    </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingItem(null)} className="cursor-pointer">Cancel</Button>
+            <Button onClick={saveItem} className="cursor-pointer">Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

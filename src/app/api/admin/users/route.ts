@@ -11,7 +11,9 @@ export async function GET() {
 
   const users = await prisma.user.findMany({
     orderBy: { createdAt: "asc" },
-    include: { defaultPage: true },
+    include: {
+      group: { select: { id: true, name: true } },
+    },
   });
 
   const enriched = users.map((u) => ({
@@ -59,57 +61,25 @@ export async function PUT(req: Request) {
       return NextResponse.json(updated);
     }
 
-    case "setDefaultPage": {
-      const { userId, defaultPageId } = body;
+    case "setGroup": {
+      const { userId, groupId } = body;
       if (!userId) {
         return NextResponse.json({ error: "userId is required" }, { status: 400 });
       }
 
-      if (defaultPageId) {
-        const page = await prisma.page.findUnique({ where: { id: defaultPageId } });
-        if (!page) {
-          return NextResponse.json({ error: "Page not found" }, { status: 404 });
-        }
-        if (page.isHome) {
-          await prisma.user.update({ where: { id: userId }, data: { defaultPageId: null } });
-          return NextResponse.json({ success: true });
+      if (groupId) {
+        const group = await prisma.group.findUnique({ where: { id: groupId } });
+        if (!group) {
+          return NextResponse.json({ error: "Group not found" }, { status: 404 });
         }
       }
 
       const updated = await prisma.user.update({
         where: { id: userId },
-        data: { defaultPageId: defaultPageId || null },
+        data: { groupId: groupId || null },
       });
 
       return NextResponse.json(updated);
-    }
-
-    case "bulkSetDefaultPage": {
-      const { userIds, defaultPageId } = body;
-      if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
-        return NextResponse.json({ error: "userIds[] is required" }, { status: 400 });
-      }
-
-      if (defaultPageId) {
-        const page = await prisma.page.findUnique({ where: { id: defaultPageId } });
-        if (!page) {
-          return NextResponse.json({ error: "Page not found" }, { status: 404 });
-        }
-        if (page.isHome) {
-          await prisma.user.updateMany({
-            where: { id: { in: userIds } },
-            data: { defaultPageId: null },
-          });
-          return NextResponse.json({ success: true });
-        }
-      }
-
-      await prisma.user.updateMany({
-        where: { id: { in: userIds } },
-        data: { defaultPageId: defaultPageId || null },
-      });
-
-      return NextResponse.json({ success: true });
     }
 
     default:

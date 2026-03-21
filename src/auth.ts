@@ -36,15 +36,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, trigger }) {
       if (!token.email) return token;
 
-      // Only query DB on sign-in or explicit refresh, not every request
       if (trigger === "signIn" || trigger === "signUp" || token.isAdmin === undefined) {
         try {
-          const user = await prisma.user.findUnique({
-            where: { email: token.email },
-            include: { defaultPage: true },
-          });
+          const [user, homepageMode] = await Promise.all([
+            prisma.user.findUnique({
+              where: { email: token.email },
+              include: { group: { include: { defaultPage: true } } },
+            }),
+            prisma.setting.findUnique({ where: { key: "homepage_mode" } }),
+          ]);
+
           token.isAdmin = isEnvAdmin(token.email) || (user?.isAdmin ?? false);
-          token.defaultPageSlug = user?.defaultPage?.slug ?? null;
+
+          const mode = homepageMode?.value ?? "global";
+          if (mode === "groups" && user?.group?.defaultPage) {
+            token.defaultPageSlug = user.group.defaultPage.slug;
+          } else {
+            token.defaultPageSlug = null;
+          }
         } catch {
           token.isAdmin = isEnvAdmin(token.email);
           token.defaultPageSlug = null;

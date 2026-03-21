@@ -1,0 +1,508 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  ChevronRight,
+  Plus,
+  Pencil,
+  Trash2,
+  Shield,
+  ShieldCheck,
+  Users,
+  X,
+  Globe,
+  Group,
+} from "lucide-react";
+
+type Page = {
+  id: string;
+  label: string;
+  slug: string;
+  order: number;
+  isHome: boolean;
+};
+
+type User = {
+  id: string;
+  email: string;
+  name: string | null;
+  image: string | null;
+  isAdmin: boolean;
+  isEnvAdmin: boolean;
+  groupId: string | null;
+  group: { id: string; name: string } | null;
+  lastLogin: string;
+};
+
+type GroupMember = {
+  id: string;
+  name: string | null;
+  email: string;
+  image: string | null;
+};
+
+type GroupData = {
+  id: string;
+  name: string;
+  defaultPageId: string | null;
+  defaultPage: Page | null;
+  members: GroupMember[];
+  createdAt: string;
+};
+
+export default function AdminUsersPage() {
+  const [pages, setPages] = useState<Page[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [groups, setGroups] = useState<GroupData[]>([]);
+  const [settings, setSettings] = useState<Record<string, string>>({});
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+
+  const [editingGroup, setEditingGroup] = useState<Partial<GroupData> | null>(null);
+  const [addingMembersGroupId, setAddingMembersGroupId] = useState<string | null>(null);
+
+  const fetchPages = useCallback(async () => {
+    const res = await fetch("/api/admin/pages");
+    if (res.ok) setPages(await res.json());
+  }, []);
+
+  const fetchUsers = useCallback(async () => {
+    const res = await fetch("/api/admin/users");
+    if (res.ok) setUsers(await res.json());
+  }, []);
+
+  const fetchGroups = useCallback(async () => {
+    const res = await fetch("/api/admin/groups");
+    if (res.ok) setGroups(await res.json());
+  }, []);
+
+  const fetchSettings = useCallback(async () => {
+    const res = await fetch("/api/admin/settings");
+    if (res.ok) setSettings(await res.json());
+  }, []);
+
+  useEffect(() => {
+    Promise.all([fetchPages(), fetchUsers(), fetchGroups(), fetchSettings()]).then(() => setLoading(false));
+  }, [fetchPages, fetchUsers, fetchGroups, fetchSettings]);
+
+  async function toggleAdmin(userId: string, newStatus: boolean) {
+    await fetch("/api/admin/users", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "toggleAdmin", userId, isAdmin: newStatus }),
+    });
+    await fetchUsers();
+  }
+
+  async function setUserGroup(userId: string, groupId: string | null) {
+    await fetch("/api/admin/users", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "setGroup", userId, groupId }),
+    });
+    await Promise.all([fetchUsers(), fetchGroups()]);
+  }
+
+  async function saveGroup() {
+    if (!editingGroup) return;
+    if (editingGroup.id) {
+      await fetch("/api/admin/groups", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingGroup.id,
+          action: "update",
+          name: editingGroup.name,
+          defaultPageId: editingGroup.defaultPageId,
+        }),
+      });
+    } else {
+      await fetch("/api/admin/groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editingGroup.name,
+          defaultPageId: editingGroup.defaultPageId,
+        }),
+      });
+    }
+    setEditingGroup(null);
+    await fetchGroups();
+  }
+
+  async function deleteGroup(id: string) {
+    if (!confirm("Delete this group? Members will become unassigned.")) return;
+    await fetch(`/api/admin/groups?id=${id}`, { method: "DELETE" });
+    await Promise.all([fetchGroups(), fetchUsers()]);
+  }
+
+  async function removeGroupMember(groupId: string, userId: string) {
+    await fetch("/api/admin/groups", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: groupId, action: "removeMember", userId }),
+    });
+    await Promise.all([fetchGroups(), fetchUsers()]);
+  }
+
+  async function addGroupMembers(groupId: string, userIds: string[]) {
+    await fetch("/api/admin/groups", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: groupId, action: "addMembers", userIds }),
+    });
+    setAddingMembersGroupId(null);
+    await Promise.all([fetchGroups(), fetchUsers()]);
+  }
+
+  async function updateHomepageMode(mode: string) {
+    await fetch("/api/admin/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "homepage_mode", value: mode }),
+    });
+    await fetchSettings();
+  }
+
+  async function updateGroupDefaultPage(groupId: string, defaultPageId: string | null) {
+    await fetch("/api/admin/groups", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: groupId, action: "update", defaultPageId }),
+    });
+    await fetchGroups();
+  }
+
+  function toggleGroup(groupId: string) {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  }
+
+  const homepageMode = settings.homepage_mode ?? "global";
+  const ungroupedUsers = users.filter((u) => !u.groupId);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <p className="text-muted-foreground text-sm">Loading...</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="space-y-8">
+
+        {/* --- Homepage Mode --- */}
+        <section>
+          <h2 className="text-base font-semibold text-foreground mb-3">Homepage Routing</h2>
+          <div className="bg-white rounded-xl border border-border p-4">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => updateHomepageMode("global")}
+                className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-colors cursor-pointer ${
+                  homepageMode === "global"
+                    ? "border-foreground bg-accent"
+                    : "border-border hover:border-muted-foreground/30"
+                }`}
+              >
+                <Globe className="h-5 w-5 shrink-0" />
+                <div className="text-left">
+                  <p className="text-sm font-medium">Global Home</p>
+                  <p className="text-xs text-muted-foreground">Everyone lands on the home page</p>
+                </div>
+              </button>
+              <button
+                onClick={() => updateHomepageMode("groups")}
+                className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-colors cursor-pointer ${
+                  homepageMode === "groups"
+                    ? "border-foreground bg-accent"
+                    : "border-border hover:border-muted-foreground/30"
+                }`}
+              >
+                <Group className="h-5 w-5 shrink-0" />
+                <div className="text-left">
+                  <p className="text-sm font-medium">Per Group</p>
+                  <p className="text-xs text-muted-foreground">Each group lands on its assigned page</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* --- Groups --- */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold text-foreground">Groups</h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="cursor-pointer"
+              onClick={() => setEditingGroup({ name: "", defaultPageId: null })}
+            >
+              <Plus className="h-4 w-4 mr-1" /> Create Group
+            </Button>
+          </div>
+          <div className="bg-white rounded-xl border border-border divide-y divide-border">
+            {groups.map((group) => {
+              const isExpanded = expandedGroups.has(group.id);
+              return (
+                <div key={group.id}>
+                  <div
+                    className="flex items-center gap-3 px-4 py-3 min-h-[48px] cursor-pointer hover:bg-muted transition-colors"
+                    onClick={() => toggleGroup(group.id)}
+                  >
+                    <ChevronRight className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
+                    <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-sm text-foreground">{group.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {group.members.length} {group.members.length === 1 ? "member" : "members"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      {homepageMode === "groups" && (
+                        <Select
+                          value={group.defaultPageId || "__home__"}
+                          onValueChange={(v) => updateGroupDefaultPage(group.id, v === "__home__" ? null : v)}
+                        >
+                          <SelectTrigger className="w-[120px] h-7 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__home__">Home</SelectItem>
+                            {pages.filter((p) => !p.isHome).map((p) => (
+                              <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      {homepageMode !== "groups" && group.defaultPage && (
+                        <Badge variant="outline" className="text-xs font-normal">{group.defaultPage.label}</Badge>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive cursor-pointer"
+                        onClick={() => deleteGroup(group.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 cursor-pointer"
+                        onClick={() => setEditingGroup(group)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="border-t border-border bg-muted/30">
+                      {group.members.map((member) => (
+                        <div
+                          key={member.id}
+                          className="flex items-center gap-3 pl-10 pr-4 py-2.5 min-h-[44px] hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm text-foreground block truncate">{member.name || "Unknown"}</span>
+                            <span className="text-xs text-muted-foreground block truncate">{member.email}</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive cursor-pointer"
+                            onClick={() => removeGroupMember(group.id, member.id)}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                      {group.members.length === 0 && (
+                        <div className="pl-10 pr-4 py-4 text-xs text-muted-foreground">
+                          No members in this group.
+                        </div>
+                      )}
+                      <div className="pl-10 pr-4 py-2 border-t border-border">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs cursor-pointer"
+                          onClick={() => setAddingMembersGroupId(group.id)}
+                        >
+                          <Plus className="h-3 w-3 mr-1" /> Add Members
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {groups.length === 0 && (
+              <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                No groups yet. Create one to organize users.
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* --- All Users --- */}
+        <section>
+          <h2 className="text-base font-semibold text-foreground mb-3">Users</h2>
+          <div className="bg-white rounded-xl border border-border divide-y divide-border">
+            {users.map((user) => (
+              <div key={user.id} className="px-4 py-3 min-h-[48px] flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="min-w-0">
+                    <span className="font-medium text-sm text-foreground block truncate">{user.name || "Unknown"}</span>
+                    <span className="text-xs text-muted-foreground block truncate">{user.email}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {user.isEnvAdmin ? (
+                    <Badge variant="secondary" className="gap-1">
+                      <ShieldCheck className="h-3 w-3" /> Admin (env)
+                    </Badge>
+                  ) : (
+                    <Button
+                      variant={user.isAdmin ? "secondary" : "outline"}
+                      size="sm"
+                      className="text-xs h-7 cursor-pointer"
+                      onClick={() => toggleAdmin(user.id, !user.isAdmin)}
+                    >
+                      {user.isAdmin ? <ShieldCheck className="h-3 w-3 mr-1" /> : <Shield className="h-3 w-3 mr-1" />}
+                      {user.isAdmin ? "Admin" : "Make Admin"}
+                    </Button>
+                  )}
+                  <Select
+                    value={user.groupId || "__none__"}
+                    onValueChange={(v) => setUserGroup(user.id, v === "__none__" ? null : v)}
+                  >
+                    <SelectTrigger className="w-[140px] h-7 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">No Group</SelectItem>
+                      {groups.map((g) => (
+                        <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            ))}
+            {users.length === 0 && (
+              <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                No users have logged in yet.
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            Users appear here automatically when they sign in.
+          </p>
+        </section>
+      </div>
+
+      {/* ============ GROUP DIALOG ============ */}
+      <Dialog open={!!editingGroup} onOpenChange={(open) => !open && setEditingGroup(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingGroup?.id ? "Edit Group" : "Create Group"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="group-name">Name</Label>
+              <Input
+                id="group-name"
+                value={editingGroup?.name ?? ""}
+                onChange={(e) => setEditingGroup({ ...editingGroup, name: e.target.value })}
+              />
+            </div>
+            {homepageMode === "groups" && (
+              <div className="space-y-2">
+                <Label>Default Page</Label>
+                <Select
+                  value={editingGroup?.defaultPageId || "__home__"}
+                  onValueChange={(v) => setEditingGroup({ ...editingGroup, defaultPageId: v === "__home__" ? null : v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__home__">Home</SelectItem>
+                    {pages.filter((p) => !p.isHome).map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingGroup(null)} className="cursor-pointer">Cancel</Button>
+            <Button onClick={saveGroup} className="cursor-pointer">Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ============ ADD MEMBERS DIALOG ============ */}
+      <Dialog open={!!addingMembersGroupId} onOpenChange={(open) => !open && setAddingMembersGroupId(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Members</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2 max-h-[400px] overflow-y-auto">
+            {ungroupedUsers.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">All users are already in a group.</p>
+            ) : (
+              ungroupedUsers.map((user) => (
+                <div
+                  key={user.id}
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                  onClick={() => {
+                    if (addingMembersGroupId) {
+                      addGroupMembers(addingMembersGroupId, [user.id]);
+                    }
+                  }}
+                >
+                  <Users className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-sm text-foreground block truncate">{user.name || "Unknown"}</span>
+                    <span className="text-xs text-muted-foreground block truncate">{user.email}</span>
+                  </div>
+                  <Plus className="h-4 w-4 text-muted-foreground ml-auto shrink-0" />
+                </div>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddingMembersGroupId(null)} className="cursor-pointer">Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
