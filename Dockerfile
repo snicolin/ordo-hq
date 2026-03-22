@@ -14,7 +14,12 @@ COPY . .
 RUN bunx prisma generate
 RUN bun run build
 
-# Stage 3: Runtime
+# Stage 3: Prisma CLI deps (for migrations in deploy script)
+FROM oven/bun:1 AS prisma-cli
+WORKDIR /app
+RUN bun install --no-save prisma dotenv
+
+# Stage 4: Runtime
 FROM node:20-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
@@ -26,14 +31,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-cert
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
+# Prisma CLI + schema for running migrations via deploy script
+COPY --from=prisma-cli /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
+
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# Prisma CLI + schema for running migrations via deploy script
-COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
-RUN npm install --no-save prisma dotenv
 
 USER nextjs
 EXPOSE 3000
