@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const { title, hideTitle, displayType, content, targetDate, pageAssignments } = body;
+  const { title, hideTitle, displayType, content, targetDate, pageId, order } = body;
 
   if (!title || !displayType) {
     return NextResponse.json({ error: "title and displayType are required" }, { status: 400 });
@@ -34,6 +34,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid displayType" }, { status: 400 });
   }
 
+  if (!pageId) {
+    return NextResponse.json({ error: "pageId is required" }, { status: 400 });
+  }
+
   const section = await prisma.section.create({
     data: {
       title,
@@ -41,14 +45,9 @@ export async function POST(req: Request) {
       displayType,
       content: content ?? null,
       targetDate: targetDate ? new Date(targetDate) : null,
-      ...(pageAssignments && {
-        pages: {
-          create: pageAssignments.map((pa: { pageId: string; order: number }) => ({
-            pageId: pa.pageId,
-            order: pa.order ?? 0,
-          })),
-        },
-      }),
+      pages: {
+        create: { pageId, order: order ?? 0 },
+      },
     },
     include: { pages: true },
   });
@@ -62,13 +61,13 @@ export async function PUT(req: Request) {
   }
 
   const body = await req.json();
-  const { id, title, hideTitle, displayType, content, targetDate, pageAssignments } = body;
+  const { id, title, hideTitle, displayType, content, targetDate } = body;
 
   if (!id) {
     return NextResponse.json({ error: "id is required" }, { status: 400 });
   }
 
-  const section = await prisma.section.update({
+  const updated = await prisma.section.update({
     where: { id },
     data: {
       ...(title !== undefined && { title }),
@@ -77,21 +76,6 @@ export async function PUT(req: Request) {
       ...(content !== undefined && { content: content || null }),
       ...(targetDate !== undefined && { targetDate: targetDate ? new Date(targetDate) : null }),
     },
-  });
-
-  if (pageAssignments) {
-    await prisma.pageSection.deleteMany({ where: { sectionId: id } });
-    await prisma.pageSection.createMany({
-      data: pageAssignments.map((pa: { pageId: string; order: number }) => ({
-        sectionId: id,
-        pageId: pa.pageId,
-        order: pa.order ?? 0,
-      })),
-    });
-  }
-
-  const updated = await prisma.section.findUnique({
-    where: { id },
     include: { pages: true, items: { orderBy: { order: "asc" } } },
   });
 

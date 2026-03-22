@@ -92,7 +92,7 @@ export async function PUT(req: Request) {
   }
 
   const body = await req.json();
-  const { id, name, href, description, image, value, apiUrl, apiField, disabled, pageIds } = body;
+  const { id, name, href, description, image, value, apiUrl, apiField, disabled } = body;
 
   if (!id) {
     return NextResponse.json({ error: "id is required" }, { status: 400 });
@@ -114,7 +114,7 @@ export async function PUT(req: Request) {
     }
   }
 
-  const item = await prisma.item.update({
+  const updated = await prisma.item.update({
     where: { id },
     data: {
       ...(name !== undefined && { name }),
@@ -126,17 +126,6 @@ export async function PUT(req: Request) {
       ...(apiField !== undefined && { apiField: apiField || null }),
       ...(disabled !== undefined && { disabled }),
     },
-  });
-
-  if (pageIds) {
-    await prisma.itemPage.deleteMany({ where: { itemId: id } });
-    await prisma.itemPage.createMany({
-      data: (pageIds as string[]).map((pid) => ({ itemId: id, pageId: pid })),
-    });
-  }
-
-  const updated = await prisma.item.findUnique({
-    where: { id },
     include: { pages: true, section: true },
   });
 

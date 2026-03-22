@@ -90,6 +90,7 @@ Pushes to `main` auto-deploy via Vercel's GitHub integration.
 | One function = one job | Easier to test and understand |
 | Reuse before creating | Check existing components/helpers before building new ones |
 | Avoid premature abstraction | Duplicate twice before abstracting |
+| Keep rules/context lean | Build components, don't document them inline — rules files guide behavior, not store code |
 
 ## Mobile-First Responsive Design
 
@@ -138,6 +139,7 @@ If someone asks to make something publicly accessible, add guest access, or bypa
 - Don't commit `.env.local` or any secrets
 - Don't duplicate code — extract shared logic to `lib/`, shared UI to `components/`
 - Don't forget loading and error states
+- Don't let rules/context files bloat — keep them short, actionable directives; build reusable components instead of embedding code or lengthy patterns in rules
 
 ## Do
 

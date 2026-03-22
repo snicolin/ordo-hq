@@ -47,12 +47,11 @@ import {
   ImageIcon,
   X,
 } from "lucide-react";
-import type { Page, Section, PageSectionJoin, Item } from "../../types";
+import type { Page, Section, Item } from "../../types";
 
 export default function PageDetailPage() {
   const { slug } = useParams<{ slug: string }>();
 
-  const [pages, setPages] = useState<Page[]>([]);
   const [page, setPage] = useState<Page | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
@@ -60,8 +59,8 @@ export default function PageDetailPage() {
   const [loading, setLoading] = useState(true);
 
   const [editingPage, setEditingPage] = useState<Partial<Page> | null>(null);
-  const [editingSection, setEditingSection] = useState<Partial<Section & { pageAssignments?: { pageId: string; order: number }[] }> | null>(null);
-  const [editingItem, setEditingItem] = useState<Partial<Item & { pageIds?: string[] }> | null>(null);
+  const [editingSection, setEditingSection] = useState<Partial<Section> | null>(null);
+  const [editingItem, setEditingItem] = useState<Partial<Item> | null>(null);
   const [editingSectionId, setEditingSectionId] = useState<string>("");
 
   const [uploading, setUploading] = useState(false);
@@ -71,9 +70,7 @@ export default function PageDetailPage() {
     const res = await fetch("/api/admin/pages");
     if (res.ok) {
       const data: Page[] = await res.json();
-      setPages(data);
-      const current = data.find((p) => p.slug === slug);
-      setPage(current ?? null);
+      setPage(data.find((p) => p.slug === slug) ?? null);
     }
   }, [slug]);
 
@@ -126,12 +123,13 @@ export default function PageDetailPage() {
   }
 
   async function saveSection() {
-    if (!editingSection) return;
+    if (!editingSection || !page) return;
     const method = editingSection.id ? "PUT" : "POST";
+    const payload = { ...editingSection, pageId: page.id, order: pageSections.length };
     const res = await fetch("/api/admin/sections", {
       method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(editingSection),
+      body: JSON.stringify(payload),
     });
     if (res.ok) {
       setEditingSection(null);
@@ -171,6 +169,7 @@ export default function PageDetailPage() {
     const payload = {
       ...editingItem,
       sectionId: editingItem.sectionId || editingSectionId,
+      ...(!editingItem.id && { pageIds: [page.id] }),
     };
     const res = await fetch("/api/admin/items", {
       method,
@@ -288,7 +287,6 @@ export default function PageDetailPage() {
               setEditingSection({
                 title: "",
                 displayType: "BUTTON",
-                pageAssignments: [{ pageId: page.id, order: pageSections.length }],
               })
             }
           />
@@ -323,13 +321,7 @@ export default function PageDetailPage() {
                         <DropdownMenuItem className="cursor-pointer" onClick={() => {
                           const sec = sections.find((s) => s.id === ps.sectionId);
                           if (sec) {
-                            setEditingSection({
-                              ...sec,
-                              pageAssignments: sec.pages?.map((p) => ({
-                                pageId: p.pageId,
-                                order: p.order,
-                              })),
-                            });
+                            setEditingSection({ ...sec });
                           }
                         }}>
                           <Pencil className="h-4 w-4 mr-2" /> Edit
@@ -347,7 +339,6 @@ export default function PageDetailPage() {
                               apiField: null,
                               disabled: false,
                               sectionId: ps.sectionId,
-                              pageIds: [page.id],
                             });
                           }}>
                             <Plus className="h-4 w-4 mr-2" /> Add Item
@@ -409,10 +400,7 @@ export default function PageDetailPage() {
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuItem className="cursor-pointer" onClick={() => {
                                     setEditingSectionId(item.sectionId);
-                                    setEditingItem({
-                                      ...item,
-                                      pageIds: item.pages?.map((p) => p.pageId) ?? [],
-                                    });
+                                    setEditingItem({ ...item });
                                   }}>
                                     <Pencil className="h-4 w-4 mr-2" /> Edit
                                   </DropdownMenuItem>
@@ -457,7 +445,6 @@ export default function PageDetailPage() {
                                   apiField: null,
                                   disabled: false,
                                   sectionId: ps.sectionId,
-                                  pageIds: [page.id],
                                 });
                               }}
                             >
@@ -598,34 +585,6 @@ export default function PageDetailPage() {
                   onCheckedChange={(checked) => setEditingSection({ ...editingSection, hideTitle: !!checked })}
                 />
                 <Label htmlFor="section-hide-title" className="cursor-pointer">Hide title on page</Label>
-              </div>
-              <div className="space-y-2">
-                <Label>Assigned to pages</Label>
-                {pages.map((p) => {
-                  const assignment = editingSection?.pageAssignments?.find((pa) => pa.pageId === p.id);
-                  return (
-                    <div key={p.id} className="flex items-center gap-2">
-                      <Checkbox
-                        checked={!!assignment}
-                        onCheckedChange={(checked) => {
-                          const current = editingSection?.pageAssignments ?? [];
-                          if (checked) {
-                            setEditingSection({
-                              ...editingSection,
-                              pageAssignments: [...current, { pageId: p.id, order: current.length }],
-                            });
-                          } else {
-                            setEditingSection({
-                              ...editingSection,
-                              pageAssignments: current.filter((pa) => pa.pageId !== p.id),
-                            });
-                          }
-                        }}
-                      />
-                      <span className="typo-body">{p.label}</span>
-                    </div>
-                  );
-                })}
               </div>
             </DialogBody>
             <DialogFooter>
@@ -807,28 +766,6 @@ export default function PageDetailPage() {
                   onCheckedChange={(checked) => setEditingItem({ ...editingItem, disabled: !!checked })}
                 />
                 <Label htmlFor="item-disabled" className="cursor-pointer">Disabled</Label>
-              </div>
-              <div className="space-y-2">
-                <Label>Visible on pages</Label>
-                <div className="flex flex-wrap gap-x-4 gap-y-2">
-                  {pages.map((p) => (
-                    <div key={p.id} className="flex items-center gap-1.5">
-                      <Checkbox
-                        checked={editingItem?.pageIds?.includes(p.id) ?? false}
-                        onCheckedChange={(checked) => {
-                          const current = editingItem?.pageIds ?? [];
-                          setEditingItem({
-                            ...editingItem,
-                            pageIds: checked
-                              ? [...current, p.id]
-                              : current.filter((id) => id !== p.id),
-                          });
-                        }}
-                      />
-                      <span className="typo-body">{p.label}</span>
-                    </div>
-                  ))}
-                </div>
               </div>
             </DialogBody>
             <DialogFooter>
