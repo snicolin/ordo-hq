@@ -18,7 +18,6 @@ FROM oven/bun:1-slim AS init
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/src/generated ./src/generated
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY prisma ./prisma
 COPY scripts/deploy.sh ./scripts/deploy.sh
 RUN chmod +x ./scripts/deploy.sh
