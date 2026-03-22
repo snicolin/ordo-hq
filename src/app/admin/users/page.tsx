@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AdminLoading, AdminEmpty, AdminSectionHeader, AdminCard } from "../components";
 import {
   Dialog,
   DialogBody,
@@ -30,14 +31,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-
-type Page = {
-  id: string;
-  label: string;
-  slug: string;
-  order: number;
-  isHome: boolean;
-};
+import type { Page } from "../types";
 
 type User = {
   id: string;
@@ -193,13 +187,7 @@ export default function AdminUsersPage() {
   const homepageMode = settings.homepage_mode ?? "global";
   const ungroupedUsers = users.filter((u) => !u.groupId);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <p className="typo-body text-muted-foreground">Loading...</p>
-      </div>
-    );
-  }
+  if (loading) return <AdminLoading />;
 
   return (
     <>
@@ -207,18 +195,12 @@ export default function AdminUsersPage() {
 
         {/* --- Groups --- */}
         <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="typo-heading">Groups</h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="cursor-pointer"
-              onClick={() => setEditingGroup({ name: "", defaultPageId: null })}
-            >
-              <Plus className="h-4 w-4 mr-1" /> Create Group
-            </Button>
-          </div>
-          <div className="bg-white rounded-xl border border-border divide-y divide-border">
+          <AdminSectionHeader
+            title="Groups"
+            addLabel="Create Group"
+            onAdd={() => setEditingGroup({ name: "", defaultPageId: null })}
+          />
+          <AdminCard>
             {groups.map((group) => {
               const isExpanded = expandedGroups.has(group.id);
               return (
@@ -318,18 +300,14 @@ export default function AdminUsersPage() {
                 </div>
               );
             })}
-            {groups.length === 0 && (
-              <div className="px-4 py-8 text-center typo-body text-muted-foreground">
-                No groups yet. Create one to organize users.
-              </div>
-            )}
-          </div>
+            {groups.length === 0 && <AdminEmpty message="No groups yet. Create one to organize users." />}
+          </AdminCard>
         </section>
 
         {/* --- All Users --- */}
         <section>
-          <h2 className="typo-heading mb-3">Users</h2>
-          <div className="bg-white rounded-xl border border-border divide-y divide-border">
+          <AdminSectionHeader title="Users" />
+          <AdminCard>
             {users.map((user) => (
               <div key={user.id} className="px-4 py-3 min-h-[48px] flex flex-col sm:flex-row sm:items-center gap-3">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -375,12 +353,8 @@ export default function AdminUsersPage() {
                 </div>
               </div>
             ))}
-            {users.length === 0 && (
-              <div className="px-4 py-8 text-center typo-body text-muted-foreground">
-                No users have logged in yet.
-              </div>
-            )}
-          </div>
+            {users.length === 0 && <AdminEmpty message="No users have logged in yet." />}
+          </AdminCard>
           <p className="typo-meta mt-3">
             Users appear here automatically when they sign in.
           </p>

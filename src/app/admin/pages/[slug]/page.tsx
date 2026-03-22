@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { AdminLoading, AdminEmpty, AdminSectionHeader, AdminCard } from "../../components";
 import {
   Dialog,
   DialogBody,
@@ -241,13 +242,7 @@ export default function PageDetailPage() {
     ? sections.find((s) => s.id === editingItem.sectionId)?.displayType
     : sections.find((s) => s.id === editingSectionId)?.displayType;
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <p className="typo-body text-muted-foreground">Loading...</p>
-      </div>
-    );
-  }
+  if (loading) return <AdminLoading />;
 
   if (!page) {
     return (
@@ -285,24 +280,18 @@ export default function PageDetailPage() {
         </div>
 
         <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="typo-heading">Sections</h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="cursor-pointer"
-              onClick={() =>
-                setEditingSection({
-                  title: "",
-                  displayType: "BUTTON",
-                  pageAssignments: [{ pageId: page.id, order: pageSections.length }],
-                })
-              }
-            >
-              <Plus className="h-4 w-4 mr-1" /> Add Section
-            </Button>
-          </div>
-          <div className="bg-white rounded-xl border border-border divide-y divide-border">
+          <AdminSectionHeader
+            title="Sections"
+            addLabel="Add Section"
+            onAdd={() =>
+              setEditingSection({
+                title: "",
+                displayType: "BUTTON",
+                pageAssignments: [{ pageId: page.id, order: pageSections.length }],
+              })
+            }
+          />
+          <AdminCard>
             {pageSections.map((ps, idx) => {
               const isExpanded = expandedSections.has(ps.sectionId);
               const items = sectionItems[ps.sectionId] ?? [];
@@ -455,12 +444,8 @@ export default function PageDetailPage() {
                 </div>
               );
             })}
-            {pageSections.length === 0 && (
-              <div className="px-4 py-8 text-center typo-body text-muted-foreground">
-                No sections on this page.
-              </div>
-            )}
-          </div>
+            {pageSections.length === 0 && <AdminEmpty message="No sections on this page." />}
+          </AdminCard>
         </section>
       </div>
 

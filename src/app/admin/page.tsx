@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { AdminLoading, AdminEmpty, AdminSectionHeader, AdminCard } from "./components";
 import {
   Dialog,
   DialogBody,
@@ -27,7 +28,6 @@ import {
   ChevronUp,
   ChevronDown,
   ChevronRight,
-  Plus,
   Pencil,
   Trash2,
   Home,
@@ -117,29 +117,17 @@ export default function AdminContentPage() {
     await fetchPages();
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <p className="typo-body text-muted-foreground">Loading...</p>
-      </div>
-    );
-  }
+  if (loading) return <AdminLoading />;
 
   return (
     <>
       <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="typo-heading">Pages</h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="cursor-pointer"
-            onClick={() => setEditingPage({ label: "", slug: "", isHome: false })}
-          >
-            <Plus className="h-4 w-4 mr-1" /> Add Page
-          </Button>
-        </div>
-        <div className="bg-white rounded-xl border border-border divide-y divide-border">
+        <AdminSectionHeader
+          title="Pages"
+          addLabel="Add Page"
+          onAdd={() => setEditingPage({ label: "", slug: "", isHome: false })}
+        />
+        <AdminCard>
           {pages.map((page, idx) => (
             <div
               key={page.id}
@@ -191,12 +179,8 @@ export default function AdminContentPage() {
               </Link>
             </div>
           ))}
-          {pages.length === 0 && (
-            <div className="px-4 py-8 text-center typo-body text-muted-foreground">
-              No pages yet. Add one to get started.
-            </div>
-          )}
-        </div>
+          {pages.length === 0 && <AdminEmpty message="No pages yet. Add one to get started." />}
+        </AdminCard>
       </section>
 
       <section className="mt-8">

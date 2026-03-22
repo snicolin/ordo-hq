@@ -4,15 +4,18 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { AdminLoading, AdminEmpty, AdminSectionHeader, AdminCard } from "../components";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DialogStepper, DialogStep } from "@/components/ui/dialog-stepper";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,7 +32,6 @@ import {
 } from "@/components/ui/select";
 import {
   MoreHorizontal,
-  Plus,
   Pencil,
   Trash2,
   Megaphone,
@@ -184,30 +186,14 @@ export default function AdminBannersPage() {
     return new Date(expiresAt) <= new Date();
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <p className="typo-body text-muted-foreground">Loading...</p>
-      </div>
-    );
-  }
+  if (loading) return <AdminLoading />;
 
   return (
     <>
       <div className="space-y-8">
         <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="typo-heading">Banners</h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="cursor-pointer"
-              onClick={openCreate}
-            >
-              <Plus className="h-4 w-4 mr-1" /> Add Banner
-            </Button>
-          </div>
-          <div className="bg-white rounded-xl border border-border divide-y divide-border">
+          <AdminSectionHeader title="Banners" addLabel="Add Banner" onAdd={openCreate} />
+          <AdminCard>
             {banners.map((banner) => {
               const expired = isExpired(banner.expiresAt);
               return (
@@ -281,12 +267,8 @@ export default function AdminBannersPage() {
                 </div>
               );
             })}
-            {banners.length === 0 && (
-              <div className="px-4 py-8 text-center typo-body text-muted-foreground">
-                No banners yet. Create one to get started.
-              </div>
-            )}
-          </div>
+            {banners.length === 0 && <AdminEmpty message="No banners yet. Create one to get started." />}
+          </AdminCard>
         </section>
       </div>
 
@@ -297,12 +279,8 @@ export default function AdminBannersPage() {
               {editing?.id ? "Edit Banner" : "Add Banner"}
             </DialogTitle>
           </DialogHeader>
-          <DialogStepper
-            onComplete={save}
-            onCancel={() => setEditing(null)}
-            completeLabel="Save"
-          >
-            <DialogStep label="Content">
+          <form onSubmit={(e) => { e.preventDefault(); save(); }}>
+            <DialogBody className="space-y-4 py-2">
               <div className="space-y-2">
                 <Label htmlFor="banner-title">Title</Label>
                 <Input
@@ -317,10 +295,9 @@ export default function AdminBannersPage() {
                 <Label htmlFor="banner-body">
                   Body <span className="text-muted-foreground font-normal">(optional)</span>
                 </Label>
-                <textarea
+                <Textarea
                   id="banner-body"
                   rows={3}
-                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   placeholder="Leave empty if the title is the full message"
                   value={editing?.body ?? ""}
                   onChange={(e) =>
@@ -387,8 +364,6 @@ export default function AdminBannersPage() {
                   </SelectContent>
                 </Select>
               </div>
-            </DialogStep>
-            <DialogStep label="Delivery">
               <div className="space-y-2">
                 <Label htmlFor="banner-link">
                   Link <span className="text-muted-foreground font-normal">(optional)</span>
@@ -483,8 +458,12 @@ export default function AdminBannersPage() {
                   Active
                 </Label>
               </div>
-            </DialogStep>
-          </DialogStepper>
+            </DialogBody>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditing(null)} className="cursor-pointer">Cancel</Button>
+              <Button type="submit" className="cursor-pointer">Save</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </>
