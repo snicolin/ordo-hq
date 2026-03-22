@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import Image from "next/image";
 import AppHeader from "@/components/AppHeader";
 import PillNav from "@/components/PillNav";
+import BannerBar from "@/components/BannerBar";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 
@@ -54,10 +55,11 @@ export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
       <AppHeader
         userName={session?.user?.name?.split(" ")[0] ?? session?.user?.email?.split("@")[0]}
         isAdmin={isAdmin}
-        badge={currentPage.label}
+        badge="HQ"
       />
 
       <main className="max-w-6xl mx-auto px-8 py-6">
+        <BannerBar />
         {navPosition === "top" && pillNav}
 
         {pageSections.map((ps) => {
@@ -73,7 +75,7 @@ export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
           if (section.displayType === "BUTTON") {
             return (
               <section key={ps.sectionId} className="mb-10">
-                {!section.hideTitle && <h2 className="text-xl font-semibold text-gray-900 mb-3">{title}</h2>}
+                {!section.hideTitle && <h2 className="typo-heading-lg mb-3">{title}</h2>}
                 <div className="flex flex-wrap gap-3">
                   {visibleItems.map((item) => (
                     <a
@@ -81,7 +83,7 @@ export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
                       href={item.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-base text-gray-800 font-medium bg-white hover:bg-gray-100 active:bg-gray-200 px-5 py-3 rounded-lg border border-gray-200 transition-all duration-150"
+                      className="typo-label text-foreground bg-white hover:bg-muted active:bg-accent px-5 py-3 rounded-lg border border-border transition-all duration-150"
                     >
                       {item.name}
                     </a>
@@ -97,7 +99,7 @@ export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
             );
             return (
               <section key={ps.sectionId} className="mb-10">
-                {!section.hideTitle && <h2 className="text-xl font-semibold text-gray-900 mb-4">{title}</h2>}
+                {!section.hideTitle && <h2 className="typo-heading-lg mb-4">{title}</h2>}
                 <div className="grid grid-cols-1 min-[280px]:grid-cols-2 lg:grid-cols-4 gap-4">
                   {sortedItems.map((item) => {
                     const Wrapper = item.disabled ? "div" : "a";
@@ -107,12 +109,12 @@ export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
                         {...(item.disabled ? {} : { href: item.href })}
                         className={`rounded-xl p-4 border flex flex-col ${
                           item.disabled
-                            ? "bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed"
-                            : "bg-white border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+                            ? "bg-muted border-border opacity-50 cursor-not-allowed"
+                            : "bg-white border-border shadow-sm hover:shadow-md transition-shadow"
                         }`}
                       >
                         {item.image && (
-                          <div className="bg-gray-50 rounded-lg aspect-[5/4] w-full mb-4 overflow-hidden relative">
+                          <div className="bg-muted rounded-lg aspect-[5/4] w-full mb-4 overflow-hidden relative">
                             <Image
                               src={item.image}
                               alt={item.name}
@@ -121,11 +123,11 @@ export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
                             />
                           </div>
                         )}
-                        <h3 className="font-semibold text-base text-gray-900 mb-1">
+                        <h3 className="typo-heading mb-1">
                           {item.name}
                         </h3>
                         {item.description && (
-                          <p className="text-base text-gray-500 leading-relaxed">
+                          <p className="typo-body text-muted-foreground leading-relaxed">
                             {item.description}
                           </p>
                         )}
@@ -140,18 +142,18 @@ export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
           if (section.displayType === "LINK") {
             return (
               <section key={ps.sectionId} className="mb-10">
-                {!section.hideTitle && <h2 className="text-xl font-semibold text-gray-900 mb-3">{title}</h2>}
+                {!section.hideTitle && <h2 className="typo-heading-lg mb-3">{title}</h2>}
                 <div className="flex flex-wrap items-center gap-1 -ml-2">
                   {visibleItems.map((item, index) => (
                     <span key={item.id} className="flex items-center">
                       <a
                         href={item.href}
-                        className="text-base text-blue-600 hover:text-blue-800 hover:underline px-2 py-2 rounded transition-colors"
+                        className="typo-body text-blue-600 hover:text-blue-800 hover:underline px-2 py-2 rounded transition-colors"
                       >
                         {item.name}
                       </a>
                       {index < visibleItems.length - 1 && (
-                        <span className="text-gray-300 text-sm">&bull;</span>
+                        <span className="text-muted-foreground/40 typo-body">&bull;</span>
                       )}
                     </span>
                   ))}

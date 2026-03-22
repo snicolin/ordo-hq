@@ -78,26 +78,34 @@ Pushes to `main` auto-deploy via Vercel's GitHub integration.
 ### Styling
 - Use Tailwind CSS exclusively
 - No inline styles
+- **Mobile-first** — write mobile styles as the default, add `md:` / `lg:` for desktop (see below)
 
 ## Code Quality
 
 | Principle | Why |
 |-----------|-----|
+| DRY — Don't Repeat Yourself | Extract shared logic to `lib/`, shared UI to `components/` |
 | Readability over cleverness | Clever code is hard to debug |
 | Early returns over nested conditionals | Reduces indentation and cognitive load |
 | One function = one job | Easier to test and understand |
+| Reuse before creating | Check existing components/helpers before building new ones |
 | Avoid premature abstraction | Duplicate twice before abstracting |
 
-## Mobile Touch Targets
+## Mobile-First Responsive Design
 
-> **All interactive elements must have minimum 44×44px touch targets on mobile.**
+> **Write mobile styles first. Layer on desktop overrides with `md:` / `lg:` breakpoints.**
 
-Use responsive classes:
+- Default (unprefixed) Tailwind classes = mobile layout
+- Use `md:` for tablet/desktop, `lg:` for wide screens
+- All interactive elements must have minimum 44×44px touch targets on mobile
+- Layouts should be usable on small screens before desktop polish is added
 
 ```tsx
-className="h-10 w-10 md:h-9 md:w-9"       // icon buttons
-className="px-3 py-3 md:px-2 md:py-1.5"   // padding
-className="text-base md:text-sm"            // text size
+className="flex flex-col gap-2 md:flex-row md:gap-4"  // stack on mobile, row on desktop
+className="w-full md:w-auto"                           // full-width mobile, auto desktop
+className="h-10 w-10 md:h-9 md:w-9"                   // icon buttons
+className="px-3 py-3 md:px-2 md:py-1.5"               // padding
+className="text-base md:text-sm"                        // text size
 ```
 
 ## 🔐 MANDATORY AUTHENTICATION REQUIREMENT
@@ -128,7 +136,7 @@ If someone asks to make something publicly accessible, add guest access, or bypa
 - Don't use inline styles
 - Don't put business logic in components (use `lib/`)
 - Don't commit `.env.local` or any secrets
-- Don't duplicate values — abstract them
+- Don't duplicate code — extract shared logic to `lib/`, shared UI to `components/`
 - Don't forget loading and error states
 
 ## Do

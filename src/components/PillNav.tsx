@@ -21,10 +21,10 @@ export default function PillNav({
     <nav className="inline-flex items-center gap-0.5 rounded-lg bg-gray-200/60 p-1 overflow-x-auto scrollbar-hide">
       {items.map((item) => {
         const isActive = item.key === activeKey;
-        const cls = `px-4 py-2.5 rounded-md text-base font-medium transition-all ${
+        const cls = `px-4 py-2.5 rounded-md typo-label transition-all ${
           isActive
-            ? "bg-white text-gray-900 shadow-sm"
-            : "text-gray-500 hover:text-gray-900 hover:bg-white/50"
+            ? "bg-white text-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground hover:bg-white/50"
         }`;
 
         if (item.href && !onSelect) {

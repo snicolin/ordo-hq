@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -28,8 +29,6 @@ import {
   ShieldCheck,
   Users,
   X,
-  Globe,
-  Group,
 } from "lucide-react";
 
 type Page = {
@@ -173,15 +172,6 @@ export default function AdminUsersPage() {
     await Promise.all([fetchGroups(), fetchUsers()]);
   }
 
-  async function updateHomepageMode(mode: string) {
-    await fetch("/api/admin/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: "homepage_mode", value: mode }),
-    });
-    await fetchSettings();
-  }
-
   async function updateGroupDefaultPage(groupId: string, defaultPageId: string | null) {
     await fetch("/api/admin/groups", {
       method: "PUT",
@@ -206,7 +196,7 @@ export default function AdminUsersPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-muted-foreground text-sm">Loading...</p>
+        <p className="typo-body text-muted-foreground">Loading...</p>
       </div>
     );
   }
@@ -215,47 +205,10 @@ export default function AdminUsersPage() {
     <>
       <div className="space-y-8">
 
-        {/* --- Homepage Mode --- */}
-        <section>
-          <h2 className="text-base font-semibold text-foreground mb-3">Homepage Routing</h2>
-          <div className="bg-white rounded-xl border border-border p-4">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={() => updateHomepageMode("global")}
-                className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-colors cursor-pointer ${
-                  homepageMode === "global"
-                    ? "border-foreground bg-accent"
-                    : "border-border hover:border-muted-foreground/30"
-                }`}
-              >
-                <Globe className="h-5 w-5 shrink-0" />
-                <div className="text-left">
-                  <p className="text-sm font-medium">Global Home</p>
-                  <p className="text-xs text-muted-foreground">Everyone lands on the home page</p>
-                </div>
-              </button>
-              <button
-                onClick={() => updateHomepageMode("groups")}
-                className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-colors cursor-pointer ${
-                  homepageMode === "groups"
-                    ? "border-foreground bg-accent"
-                    : "border-border hover:border-muted-foreground/30"
-                }`}
-              >
-                <Group className="h-5 w-5 shrink-0" />
-                <div className="text-left">
-                  <p className="text-sm font-medium">Per Group</p>
-                  <p className="text-xs text-muted-foreground">Each group lands on its assigned page</p>
-                </div>
-              </button>
-            </div>
-          </div>
-        </section>
-
         {/* --- Groups --- */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-semibold text-foreground">Groups</h2>
+            <h2 className="typo-heading">Groups</h2>
             <Button
               variant="ghost"
               size="sm"
@@ -276,8 +229,8 @@ export default function AdminUsersPage() {
                   >
                     <ChevronRight className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
                     <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-sm text-foreground">{group.name}</span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="typo-label text-foreground">{group.name}</span>
+                      <span className="typo-meta">
                         {group.members.length} {group.members.length === 1 ? "member" : "members"}
                       </span>
                     </div>
@@ -288,7 +241,11 @@ export default function AdminUsersPage() {
                           onValueChange={(v) => updateGroupDefaultPage(group.id, v === "__home__" ? null : v)}
                         >
                           <SelectTrigger className="w-[120px] h-7 text-xs">
-                            <SelectValue />
+                            <SelectValue>
+                              {group.defaultPageId
+                                ? pages.find((p) => p.id === group.defaultPageId)?.label ?? "Home"
+                                : "Home"}
+                            </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="__home__">Home</SelectItem>
@@ -328,8 +285,8 @@ export default function AdminUsersPage() {
                           className="flex items-center gap-3 pl-10 pr-4 py-2.5 min-h-[44px] hover:bg-muted/50 transition-colors"
                         >
                           <div className="flex-1 min-w-0">
-                            <span className="text-sm text-foreground block truncate">{member.name || "Unknown"}</span>
-                            <span className="text-xs text-muted-foreground block truncate">{member.email}</span>
+                            <span className="typo-body text-foreground block truncate">{member.name || "Unknown"}</span>
+                            <span className="typo-meta block truncate">{member.email}</span>
                           </div>
                           <Button
                             variant="ghost"
@@ -342,7 +299,7 @@ export default function AdminUsersPage() {
                         </div>
                       ))}
                       {group.members.length === 0 && (
-                        <div className="pl-10 pr-4 py-4 text-xs text-muted-foreground">
+                        <div className="pl-10 pr-4 py-4 typo-meta">
                           No members in this group.
                         </div>
                       )}
@@ -362,7 +319,7 @@ export default function AdminUsersPage() {
               );
             })}
             {groups.length === 0 && (
-              <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+              <div className="px-4 py-8 text-center typo-body text-muted-foreground">
                 No groups yet. Create one to organize users.
               </div>
             )}
@@ -371,14 +328,14 @@ export default function AdminUsersPage() {
 
         {/* --- All Users --- */}
         <section>
-          <h2 className="text-base font-semibold text-foreground mb-3">Users</h2>
+          <h2 className="typo-heading mb-3">Users</h2>
           <div className="bg-white rounded-xl border border-border divide-y divide-border">
             {users.map((user) => (
               <div key={user.id} className="px-4 py-3 min-h-[48px] flex flex-col sm:flex-row sm:items-center gap-3">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="min-w-0">
-                    <span className="font-medium text-sm text-foreground block truncate">{user.name || "Unknown"}</span>
-                    <span className="text-xs text-muted-foreground block truncate">{user.email}</span>
+                    <span className="typo-label text-foreground block truncate">{user.name || "Unknown"}</span>
+                    <span className="typo-meta block truncate">{user.email}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -402,7 +359,11 @@ export default function AdminUsersPage() {
                     onValueChange={(v) => setUserGroup(user.id, v === "__none__" ? null : v)}
                   >
                     <SelectTrigger className="w-[140px] h-7 text-xs">
-                      <SelectValue />
+                      <SelectValue>
+                        {user.groupId
+                          ? groups.find((g) => g.id === user.groupId)?.name ?? "No Group"
+                          : "No Group"}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none__">No Group</SelectItem>
@@ -415,12 +376,12 @@ export default function AdminUsersPage() {
               </div>
             ))}
             {users.length === 0 && (
-              <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+              <div className="px-4 py-8 text-center typo-body text-muted-foreground">
                 No users have logged in yet.
               </div>
             )}
           </div>
-          <p className="text-xs text-muted-foreground mt-3">
+          <p className="typo-meta mt-3">
             Users appear here automatically when they sign in.
           </p>
         </section>
@@ -432,39 +393,45 @@ export default function AdminUsersPage() {
           <DialogHeader>
             <DialogTitle>{editingGroup?.id ? "Edit Group" : "Create Group"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="group-name">Name</Label>
-              <Input
-                id="group-name"
-                value={editingGroup?.name ?? ""}
-                onChange={(e) => setEditingGroup({ ...editingGroup, name: e.target.value })}
-              />
-            </div>
-            {homepageMode === "groups" && (
+          <form onSubmit={(e) => { e.preventDefault(); saveGroup(); }}>
+            <DialogBody className="space-y-4 py-2">
               <div className="space-y-2">
-                <Label>Default Page</Label>
-                <Select
-                  value={editingGroup?.defaultPageId || "__home__"}
-                  onValueChange={(v) => setEditingGroup({ ...editingGroup, defaultPageId: v === "__home__" ? null : v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__home__">Home</SelectItem>
-                    {pages.filter((p) => !p.isHome).map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="group-name">Name</Label>
+                <Input
+                  id="group-name"
+                  value={editingGroup?.name ?? ""}
+                  onChange={(e) => setEditingGroup({ ...editingGroup, name: e.target.value })}
+                />
               </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingGroup(null)} className="cursor-pointer">Cancel</Button>
-            <Button onClick={saveGroup} className="cursor-pointer">Save</Button>
-          </DialogFooter>
+              {homepageMode === "groups" && (
+                <div className="space-y-2">
+                  <Label>Default Page</Label>
+                  <Select
+                    value={editingGroup?.defaultPageId || "__home__"}
+                    onValueChange={(v) => setEditingGroup({ ...editingGroup, defaultPageId: v === "__home__" ? null : v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue>
+                        {editingGroup?.defaultPageId
+                          ? pages.find((p) => p.id === editingGroup.defaultPageId)?.label ?? "Home"
+                          : "Home"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__home__">Home</SelectItem>
+                      {pages.filter((p) => !p.isHome).map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </DialogBody>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditingGroup(null)} className="cursor-pointer">Cancel</Button>
+              <Button type="submit" className="cursor-pointer">Save</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -474,9 +441,9 @@ export default function AdminUsersPage() {
           <DialogHeader>
             <DialogTitle>Add Members</DialogTitle>
           </DialogHeader>
-          <div className="space-y-2 py-2 max-h-[400px] overflow-y-auto">
+          <DialogBody className="space-y-2 py-2">
             {ungroupedUsers.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">All users are already in a group.</p>
+              <p className="typo-body text-muted-foreground text-center py-4">All users are already in a group.</p>
             ) : (
               ungroupedUsers.map((user) => (
                 <div
@@ -490,14 +457,14 @@ export default function AdminUsersPage() {
                 >
                   <Users className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div className="min-w-0">
-                    <span className="text-sm text-foreground block truncate">{user.name || "Unknown"}</span>
-                    <span className="text-xs text-muted-foreground block truncate">{user.email}</span>
+                    <span className="typo-body text-foreground block truncate">{user.name || "Unknown"}</span>
+                    <span className="typo-meta block truncate">{user.email}</span>
                   </div>
                   <Plus className="h-4 w-4 text-muted-foreground ml-auto shrink-0" />
                 </div>
               ))
             )}
-          </div>
+          </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddingMembersGroupId(null)} className="cursor-pointer">Done</Button>
           </DialogFooter>

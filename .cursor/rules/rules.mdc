@@ -17,13 +17,30 @@
 - Business logic in `src/lib/`, not in components.
 - Check `src/components/ui/` for existing shadcn components before creating new ones.
 
-## Mobile
+## DRY — Don't Repeat Yourself
 
-All interactive elements: minimum 44x44px touch targets on mobile. Use responsive classes:
+- **Extract shared logic into `src/lib/`** — if two components use the same fetch/transform/validation, make a helper.
+- **Extract shared UI into `src/components/`** — if a pattern appears twice, componentize it.
+- **Reuse existing components** — always check `src/components/` and `src/components/ui/` before building something new.
+- **Constants and config in one place** — no magic strings scattered across files. Use `src/lib/` for shared constants.
+- **Shared types in dedicated files** — don't redeclare the same interface in multiple files.
+
+## Mobile-First Responsive Design
+
+**Write mobile styles first, then layer on desktop overrides with `md:` / `lg:` breakpoints.**
+
+- Default (unprefixed) Tailwind classes = mobile layout.
+- Use `md:` for tablet/desktop adjustments, `lg:` for wide screens.
+- All interactive elements: minimum 44x44px touch targets on mobile.
+- Test that layouts work on small screens before adding desktop polish.
+
 ```tsx
-className="h-10 w-10 md:h-9 md:w-9"
-className="px-3 py-3 md:px-2 md:py-1.5"
+// Mobile-first: base is mobile, md: overrides for desktop
+className="flex flex-col gap-2 md:flex-row md:gap-4"
 className="text-base md:text-sm"
+className="px-3 py-3 md:px-2 md:py-1.5"
+className="w-full md:w-auto"
+className="h-10 w-10 md:h-9 md:w-9"
 ```
 
 ## API Routes
@@ -37,6 +54,28 @@ className="text-base md:text-sm"
 - Admin pages are `'use client'` components that fetch from `/api/admin/*`.
 - Use the existing dialog/form patterns from `src/app/admin/page.tsx` as reference.
 - Settings use `PUT /api/admin/settings` with `{ key, value }` — add new keys to `ALLOWED_KEYS`.
+
+## Select Component — Always Pass Explicit Labels
+
+The `Select` uses Base UI with a Portal. `SelectValue` **cannot resolve item labels** until the dropdown opens, so it falls back to showing the raw `value` prop (e.g. "ALL" instead of "Everyone").
+
+**Always pass children to `SelectValue` with the display label:**
+
+```tsx
+<SelectValue>
+  {value === "ALL" ? "Everyone" : "Specific Group"}
+</SelectValue>
+```
+
+For dynamic options (IDs as values), resolve the label from your data:
+
+```tsx
+<SelectValue>
+  {items.find((i) => i.id === selectedId)?.name ?? "Fallback"}
+</SelectValue>
+```
+
+**Never use bare `<SelectValue />`** — the trigger will show raw enum values or UUIDs.
 
 ## Prisma
 
@@ -56,4 +95,4 @@ className="text-base md:text-sm"
 - Don't put business logic in components.
 - Don't commit `.env.local`.
 - Don't forget loading and error states.
-- Don't duplicate code — check existing abstractions first.
+- Don't duplicate code — extract shared logic/components (see DRY section).

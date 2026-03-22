@@ -5,18 +5,18 @@ import PillNav from "@/components/PillNav";
 
 export default function AdminNav() {
   const pathname = usePathname();
-  const activeKey = pathname.startsWith("/admin/settings")
-    ? "settings"
-    : pathname.startsWith("/admin/users")
-      ? "users"
+  const activeKey = pathname.startsWith("/admin/users")
+    ? "users"
+    : pathname.startsWith("/admin/banners")
+      ? "banners"
       : "content";
 
   return (
     <PillNav
       items={[
         { key: "content", label: "Content", href: "/admin" },
+        { key: "banners", label: "Banners", href: "/admin/banners" },
         { key: "users", label: "Users", href: "/admin/users" },
-        { key: "settings", label: "Settings", href: "/admin/settings" },
       ]}
       activeKey={activeKey}
     />

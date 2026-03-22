@@ -23,7 +23,8 @@ model User {
   lastLogin DateTime @default(now())
   createdAt DateTime @default(now())
 
-  group Group? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  group             Group?            @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  bannerDismissals  BannerDismissal[]
 }
 
 model Page {
@@ -89,8 +90,38 @@ model Group {
   defaultPageId String?
   createdAt     DateTime @default(now())
 
-  defaultPage Page?  @relation("GroupDefaultPage", fields: [defaultPageId], references: [id], onDelete: SetNull)
+  defaultPage Page?    @relation("GroupDefaultPage", fields: [defaultPageId], references: [id], onDelete: SetNull)
   members     User[]
+  banners     Banner[]
+}
+
+model Banner {
+  id          String   @id @default(cuid())
+  title       String
+  body        String?
+  color       String   @default("YELLOW")
+  icon        String?
+  link        String?
+  dismissible Boolean  @default(true)
+  expiresAt   DateTime
+  targetType  String   @default("ALL")
+  groupId     String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  group      Group?            @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  dismissals BannerDismissal[]
+}
+
+model BannerDismissal {
+  userId      String
+  bannerId    String
+  dismissedAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  banner Banner @relation(fields: [bannerId], references: [id], onDelete: Cascade)
+
+  @@id([userId, bannerId])
 }
 
 model Setting {

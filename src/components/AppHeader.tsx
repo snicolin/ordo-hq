@@ -6,15 +6,17 @@ import { signOutAction } from "@/app/actions";
 export default function AppHeader({
   userName,
   isAdmin,
+  isOnAdmin,
   badge,
 }: {
   userName?: string;
   isAdmin?: boolean;
+  isOnAdmin?: boolean;
   badge?: string;
 }) {
   return (
-    <header className="bg-white border-b border-gray-200">
-      <div className="max-w-6xl mx-auto px-8 py-5 flex items-center justify-between">
+    <header className="bg-white border-b border-border">
+      <div className="max-w-6xl mx-auto px-4 md:px-8 py-5 flex items-center justify-between">
         <div className="flex items-end gap-3">
           <Link href="/">
             <img
@@ -24,7 +26,7 @@ export default function AppHeader({
             />
           </Link>
           {badge && (
-            <Badge className="text-xs font-medium bg-gradient-to-b from-gray-700 to-gray-900 text-gray-100 shadow-sm ring-1 ring-white/10">
+            <Badge className={`text-xs font-medium ${badge === "Admin" ? "bg-gradient-to-b from-gray-700 to-gray-900 text-gray-100 shadow-sm ring-1 ring-white/10" : "bg-muted text-muted-foreground ring-1 ring-border"}`}>
               {badge}
             </Badge>
           )}
@@ -34,6 +36,7 @@ export default function AppHeader({
             <UserMenu
               firstName={userName}
               isAdmin={isAdmin}
+              isOnAdmin={isOnAdmin}
               signOutAction={signOutAction}
             />
           )}

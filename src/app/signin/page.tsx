@@ -27,17 +27,17 @@ export default async function SignInPage({
             height={48}
             className="mx-auto mb-4"
           />
-          <h1 className="text-2xl font-semibold text-gray-900">
+          <h1 className="typo-display">
             Welcome to Ordo HQ
           </h1>
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="typo-body text-muted-foreground mt-2">
             Sign in with your Ordo Google account to continue.
           </p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-600">
+          <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+            <p className="typo-body text-red-600">
               {error === "AccessDenied"
                 ? "Access denied. Only @ordoschools.com and @ordo.com email addresses are allowed."
                 : "An error occurred during sign in. Please try again."}
@@ -47,7 +47,7 @@ export default async function SignInPage({
 
         <SignInButton />
 
-        <p className="text-xs text-gray-400 mt-6">
+        <p className="typo-meta mt-6">
           Access restricted to @ordoschools.com and @ordo.com accounts.
         </p>
       </div>

@@ -21,9 +21,10 @@ export default async function AdminLayout({
       <AppHeader
         userName={session?.user?.name?.split(" ")[0] ?? session?.user?.email?.split("@")[0]}
         isAdmin={true}
+        isOnAdmin={true}
         badge="Admin"
       />
-      <div className="max-w-6xl mx-auto px-8 py-6 pb-24">
+        <div className="max-w-6xl mx-auto px-8 py-6 pb-24">
         <div className="mb-6">
           <AdminNav />
         </div>

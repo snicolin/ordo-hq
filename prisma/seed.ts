@@ -137,7 +137,7 @@ async function main() {
     {
       name: "Lead Hunter 64",
       image: "/images/lead-hunter.png",
-      description: "Generate list-for-basic chief needs.",
+      description: "Generate a lead list of chefs for schools.",
       href: "https://chefs-leads-generator.vercel.app/",
       tags: ["growth"],
       order: 2,
