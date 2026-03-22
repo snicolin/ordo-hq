@@ -1,5 +1,7 @@
 import TeamPage from "@/components/TeamPage";
 
+export const dynamic = "force-dynamic";
+
 export default async function SlugPage({
   params,
 }: {
