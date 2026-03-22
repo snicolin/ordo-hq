@@ -234,7 +234,13 @@
 .rich-content hr {
   @apply my-4 border-t border-border;
 }
+.rich-content h3.warning {
+  @apply text-lg font-bold text-red-600 mt-2 mb-1 first:mt-0 last:mb-0;
+}
 
 .tiptap-editor hr {
   @apply my-4 border-t border-border;
+}
+.tiptap-editor h3.warning {
+  @apply text-lg font-bold text-red-600 mt-2 mb-1;
 }

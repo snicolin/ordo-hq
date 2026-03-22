@@ -5,6 +5,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
+import { Node, mergeAttributes } from "@tiptap/core";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import {
@@ -21,7 +22,33 @@ import {
   Heading3,
   Type,
   Unlink,
+  AlertTriangle,
 } from "lucide-react";
+
+const WarningBlock = Node.create({
+  name: "warning",
+  group: "block",
+  content: "inline*",
+  defining: true,
+
+  parseHTML() {
+    return [{ tag: "h3.warning" }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ["h3", mergeAttributes(HTMLAttributes, { class: "warning" }), 0];
+  },
+
+  addCommands() {
+    return {
+      toggleWarning:
+        () =>
+        ({ commands }) => {
+          return commands.toggleNode(this.name, "paragraph");
+        },
+    };
+  },
+});
 
 type RichTextEditorProps = {
   value: string;
@@ -29,13 +56,14 @@ type RichTextEditorProps = {
   placeholder?: string;
 };
 
-type BlockType = "paragraph" | "heading1" | "heading2" | "heading3";
+type BlockType = "paragraph" | "heading1" | "heading2" | "heading3" | "warning";
 
 const BLOCK_TYPES: { value: BlockType; label: string; icon: React.ReactNode }[] = [
   { value: "paragraph", label: "Normal", icon: <Type className="h-3.5 w-3.5" /> },
   { value: "heading1", label: "Heading 1", icon: <Heading1 className="h-3.5 w-3.5" /> },
   { value: "heading2", label: "Heading 2", icon: <Heading2 className="h-3.5 w-3.5" /> },
   { value: "heading3", label: "Heading 3", icon: <Heading3 className="h-3.5 w-3.5" /> },
+  { value: "warning", label: "Warning", icon: <AlertTriangle className="h-3.5 w-3.5" /> },
 ];
 
 function ToolbarButton({
@@ -191,6 +219,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
       }),
+      WarningBlock,
       Underline,
       Link.configure({
         openOnClick: false,
@@ -225,6 +254,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
 
   const getCurrentBlockType = useCallback((): BlockType => {
     if (!editor) return "paragraph";
+    if (editor.isActive("warning")) return "warning";
     if (editor.isActive("heading", { level: 1 })) return "heading1";
     if (editor.isActive("heading", { level: 2 })) return "heading2";
     if (editor.isActive("heading", { level: 3 })) return "heading3";
@@ -243,6 +273,9 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
           break;
         case "heading3":
           editor.chain().focus().toggleHeading({ level: 3 }).run();
+          break;
+        case "warning":
+          (editor.chain().focus() as unknown as { toggleWarning: () => { run: () => void } }).toggleWarning().run();
           break;
         default:
           editor.chain().focus().setParagraph().run();
