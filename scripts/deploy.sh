@@ -149,7 +149,9 @@ fi
 
 # ── Switch Caddy upstream ──
 echo "==> Switching traffic to ${TARGET}..."
-sed -i "s/\(blue\|green\):3000/${TARGET}:3000/g" "$CADDYFILE"
+# Write to the same inode (sed -i creates a new inode, breaking Docker bind mounts)
+CADDY_CONTENT=$(sed "s/\(blue\|green\):3000/${TARGET}:3000/g" "$CADDYFILE")
+printf '%s\n' "$CADDY_CONTENT" > "$CADDYFILE"
 docker compose -f ${COMPOSE_FILE} exec caddy caddy reload --config /etc/caddy/Caddyfile
 
 # Verify the switch
