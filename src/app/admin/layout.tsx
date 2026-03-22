@@ -10,12 +10,12 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const session = await auth();
+  if (!session) redirect("/signin");
   const admin = await isAdmin();
   if (!admin) {
     redirect("/");
   }
-
-  const session = await auth();
 
   return (
     <div className="min-h-screen bg-background">

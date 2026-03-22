@@ -6,7 +6,7 @@ import AlertBar from "@/components/AlertBar";
 import CountdownTimer from "@/components/CountdownTimer";
 import CollapsibleSection from "@/components/CollapsibleSection";
 import { prisma } from "@/lib/prisma";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { containerClass } from "@/lib/styles";
 
 function getNestedValue(obj: unknown, path: string): unknown {
@@ -20,6 +20,7 @@ function getNestedValue(obj: unknown, path: string): unknown {
 
 export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
   const session = await auth();
+  if (!session) redirect("/signin");
   const isAdmin = (session?.user as Record<string, unknown>)?.isAdmin === true;
 
   const allPages = await prisma.page.findMany({ orderBy: { order: "asc" } });
