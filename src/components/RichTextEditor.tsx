@@ -6,6 +6,7 @@ import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import { useState, useCallback, useEffect, useRef } from "react";
+import { sanitizeHtml } from "@/lib/sanitize-html";
 import {
   Bold,
   Italic,
@@ -13,6 +14,7 @@ import {
   Link as LinkIcon,
   List,
   ListOrdered,
+  Minus,
   ChevronDown,
   Heading1,
   Heading2,
@@ -207,6 +209,9 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
       attributes: {
         class: "tiptap-editor",
       },
+      transformPastedHTML(html) {
+        return sanitizeHtml(html);
+      },
     },
   });
 
@@ -337,6 +342,15 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
           title="Numbered list"
         >
           <ListOrdered className="h-3.5 w-3.5" />
+        </ToolbarButton>
+
+        <div className="w-px h-4 bg-border mx-0.5" />
+
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setHorizontalRule().run()}
+          title="Horizontal rule"
+        >
+          <Minus className="h-3.5 w-3.5" />
         </ToolbarButton>
 
       </div>

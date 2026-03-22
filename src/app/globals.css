@@ -202,22 +202,22 @@
 
 /* Rich content rendering (front-end) */
 .rich-content h1 {
-  @apply text-2xl font-bold mt-4 mb-2 first:mt-0;
+  @apply text-2xl font-bold mt-4 mb-2 first:mt-0 last:mb-0;
 }
 .rich-content h2 {
-  @apply text-xl font-semibold mt-3 mb-1.5 first:mt-0;
+  @apply text-xl font-semibold mt-3 mb-1.5 first:mt-0 last:mb-0;
 }
 .rich-content h3 {
-  @apply text-lg font-semibold mt-2 mb-1 first:mt-0;
+  @apply text-lg font-semibold mt-2 mb-1 first:mt-0 last:mb-0;
 }
 .rich-content p {
-  @apply my-1 text-foreground;
+  @apply my-1 text-foreground min-h-[1em] first:mt-0 last:mb-0;
 }
 .rich-content ul {
-  @apply list-disc pl-6 my-1.5;
+  @apply list-disc pl-6 my-1.5 first:mt-0 last:mb-0;
 }
 .rich-content ol {
-  @apply list-decimal pl-6 my-1.5;
+  @apply list-decimal pl-6 my-1.5 first:mt-0 last:mb-0;
 }
 .rich-content li {
   @apply my-0.5;
@@ -230,4 +230,11 @@
 }
 .rich-content strong {
   @apply font-semibold text-foreground;
+}
+.rich-content hr {
+  @apply my-4 border-t border-border;
+}
+
+.tiptap-editor hr {
+  @apply my-4 border-t border-border;
 }
