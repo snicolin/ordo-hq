@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AdminLoading, AdminEmpty, AdminSectionHeader, AdminCard } from "../../components";
@@ -333,20 +334,25 @@ export default function PageDetailPage() {
                         }}>
                           <Pencil className="h-4 w-4 mr-2" /> Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer" onClick={() => {
-                          setEditingSectionId(ps.sectionId);
-                          setEditingItem({
-                            name: "",
-                            href: "",
-                            description: "",
-                            image: "",
-                            disabled: false,
-                            sectionId: ps.sectionId,
-                            pageIds: [page.id],
-                          });
-                        }}>
-                          <Plus className="h-4 w-4 mr-2" /> Add Item
-                        </DropdownMenuItem>
+                        {!["TEXT", "COUNTDOWN"].includes(ps.section.displayType) && (
+                          <DropdownMenuItem className="cursor-pointer" onClick={() => {
+                            setEditingSectionId(ps.sectionId);
+                            setEditingItem({
+                              name: "",
+                              href: "",
+                              description: "",
+                              image: "",
+                              value: null,
+                              apiUrl: null,
+                              apiField: null,
+                              disabled: false,
+                              sectionId: ps.sectionId,
+                              pageIds: [page.id],
+                            });
+                          }}>
+                            <Plus className="h-4 w-4 mr-2" /> Add Item
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="cursor-pointer" disabled={idx === 0} onClick={() => reorderPageSections(ps.sectionId, "up")}>
                           <ChevronUp className="h-4 w-4 mr-2" /> Move Up
@@ -364,81 +370,102 @@ export default function PageDetailPage() {
 
                   {isExpanded && (
                     <div className="border-t border-border bg-muted/30">
-                      {items.map((item, itemIdx) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center gap-3 pl-10 pr-4 py-2.5 min-h-[44px] hover:bg-muted/50 transition-colors"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className={`text-sm ${item.disabled ? "text-muted-foreground line-through" : "text-foreground"}`}>
-                                {item.name}
-                              </span>
-                              {item.disabled && <Badge variant="outline" className="text-xs">disabled</Badge>}
-                            </div>
-                            <p className="typo-meta truncate mt-0.5">
-                              {item.href}
-                            </p>
-                          </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger className="inline-flex items-center justify-center h-8 w-8 shrink-0 cursor-pointer rounded-lg hover:bg-muted transition-colors">
-                              <MoreHorizontal className="h-3.5 w-3.5" />
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem className="cursor-pointer" onClick={() => {
-                                setEditingSectionId(item.sectionId);
-                                setEditingItem({
-                                  ...item,
-                                  pageIds: item.pages?.map((p) => p.pageId) ?? [],
-                                });
-                              }}>
-                                <Pencil className="h-4 w-4 mr-2" /> Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="cursor-pointer" onClick={() => toggleItemDisabled(item)}>
-                                {item.disabled ? <Eye className="h-4 w-4 mr-2" /> : <EyeOff className="h-4 w-4 mr-2" />}
-                                {item.disabled ? "Enable" : "Disable"}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="cursor-pointer" disabled={itemIdx === 0} onClick={() => reorderItems(ps.sectionId, item.id, "up")}>
-                                <ChevronUp className="h-4 w-4 mr-2" /> Move Up
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="cursor-pointer" disabled={itemIdx === items.length - 1} onClick={() => reorderItems(ps.sectionId, item.id, "down")}>
-                                <ChevronDown className="h-4 w-4 mr-2" /> Move Down
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => deleteItem(item)}>
-                                <Trash2 className="h-4 w-4 mr-2" /> Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      ))}
-                      {items.length === 0 && (
+                      {["TEXT", "COUNTDOWN"].includes(ps.section.displayType) ? (
                         <div className="pl-10 pr-4 py-4 typo-meta">
-                          No items on this page.
+                          {ps.section.displayType === "TEXT"
+                            ? (ps.section.content ? "Content configured via section settings." : "No content yet. Edit the section to add markdown content.")
+                            : (ps.section.targetDate ? `Counting down to ${new Date(ps.section.targetDate).toLocaleString()}` : "No target date set. Edit the section to configure.")}
                         </div>
+                      ) : (
+                        <>
+                          {items.map((item, itemIdx) => (
+                            <div
+                              key={item.id}
+                              className="flex items-center gap-3 pl-10 pr-4 py-2.5 min-h-[44px] hover:bg-muted/50 transition-colors"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className={`text-sm ${item.disabled ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                                    {item.name}
+                                  </span>
+                                  {item.disabled && <Badge variant="outline" className="text-xs">disabled</Badge>}
+                                  {ps.section.displayType === "METRIC" && item.value && (
+                                    <Badge variant="secondary" className="text-xs font-normal">{item.value}</Badge>
+                                  )}
+                                  {ps.section.displayType === "METRIC" && item.apiUrl && (
+                                    <Badge variant="outline" className="text-xs font-normal">API</Badge>
+                                  )}
+                                </div>
+                                <p className="typo-meta truncate mt-0.5">
+                                  {ps.section.displayType === "METRIC"
+                                    ? (item.apiUrl || item.description || "Manual value")
+                                    : item.href}
+                                </p>
+                              </div>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger className="inline-flex items-center justify-center h-8 w-8 shrink-0 cursor-pointer rounded-lg hover:bg-muted transition-colors">
+                                  <MoreHorizontal className="h-3.5 w-3.5" />
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem className="cursor-pointer" onClick={() => {
+                                    setEditingSectionId(item.sectionId);
+                                    setEditingItem({
+                                      ...item,
+                                      pageIds: item.pages?.map((p) => p.pageId) ?? [],
+                                    });
+                                  }}>
+                                    <Pencil className="h-4 w-4 mr-2" /> Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="cursor-pointer" onClick={() => toggleItemDisabled(item)}>
+                                    {item.disabled ? <Eye className="h-4 w-4 mr-2" /> : <EyeOff className="h-4 w-4 mr-2" />}
+                                    {item.disabled ? "Enable" : "Disable"}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="cursor-pointer" disabled={itemIdx === 0} onClick={() => reorderItems(ps.sectionId, item.id, "up")}>
+                                    <ChevronUp className="h-4 w-4 mr-2" /> Move Up
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="cursor-pointer" disabled={itemIdx === items.length - 1} onClick={() => reorderItems(ps.sectionId, item.id, "down")}>
+                                    <ChevronDown className="h-4 w-4 mr-2" /> Move Down
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => deleteItem(item)}>
+                                    <Trash2 className="h-4 w-4 mr-2" /> Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          ))}
+                          {items.length === 0 && (
+                            <div className="pl-10 pr-4 py-4 typo-meta">
+                              No items on this page.
+                            </div>
+                          )}
+                          <div className="pl-10 pr-4 py-2 border-t border-border">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs cursor-pointer"
+                              onClick={() => {
+                                setEditingSectionId(ps.sectionId);
+                                setEditingItem({
+                                  name: "",
+                                  href: "",
+                                  description: "",
+                                  image: "",
+                                  value: null,
+                                  apiUrl: null,
+                                  apiField: null,
+                                  disabled: false,
+                                  sectionId: ps.sectionId,
+                                  pageIds: [page.id],
+                                });
+                              }}
+                            >
+                              <Plus className="h-3 w-3 mr-1" /> Add Item
+                            </Button>
+                          </div>
+                        </>
                       )}
-                      <div className="pl-10 pr-4 py-2 border-t border-border">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-xs cursor-pointer"
-                          onClick={() => {
-                            setEditingSectionId(ps.sectionId);
-                            setEditingItem({
-                              name: "",
-                              href: "",
-                              description: "",
-                              image: "",
-                              disabled: false,
-                              sectionId: ps.sectionId,
-                              pageIds: [page.id],
-                            });
-                          }}
-                        >
-                          <Plus className="h-3 w-3 mr-1" /> Add Item
-                        </Button>
-                      </div>
                     </div>
                   )}
                 </div>
@@ -510,20 +537,60 @@ export default function PageDetailPage() {
                 <Label>Display Type</Label>
                 <Select
                   value={editingSection?.displayType ?? "BUTTON"}
-                  onValueChange={(v) => setEditingSection({ ...editingSection, displayType: v as "BUTTON" | "LINK" | "TILE" })}
+                  onValueChange={(v) => setEditingSection({ ...editingSection, displayType: v as Section["displayType"] })}
                 >
                   <SelectTrigger>
                     <SelectValue>
-                      {{ BUTTON: "Button", LINK: "Link", TILE: "Tile" }[editingSection?.displayType ?? "BUTTON"]}
+                      {{ BUTTON: "Button", LINK: "Link", TILE: "Tile", METRIC: "Metric", TEXT: "Text Block", COUNTDOWN: "Countdown" }[editingSection?.displayType ?? "BUTTON"]}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="BUTTON">Button</SelectItem>
                     <SelectItem value="LINK">Link</SelectItem>
                     <SelectItem value="TILE">Tile</SelectItem>
+                    <SelectItem value="METRIC">Metric</SelectItem>
+                    <SelectItem value="TEXT">Text Block</SelectItem>
+                    <SelectItem value="COUNTDOWN">Countdown</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+              {editingSection?.displayType === "TEXT" && (
+                <div className="space-y-2">
+                  <Label htmlFor="section-content">Content (Markdown)</Label>
+                  <Textarea
+                    id="section-content"
+                    rows={6}
+                    placeholder="Write your content in markdown..."
+                    value={editingSection?.content ?? ""}
+                    onChange={(e) => setEditingSection({ ...editingSection, content: e.target.value })}
+                  />
+                </div>
+              )}
+              {editingSection?.displayType === "COUNTDOWN" && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="section-target-date">Target Date</Label>
+                    <Input
+                      id="section-target-date"
+                      type="datetime-local"
+                      value={editingSection?.targetDate?.slice(0, 16) ?? ""}
+                      onChange={(e) => setEditingSection({ ...editingSection, targetDate: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="section-content-countdown">
+                      Description <span className="text-muted-foreground font-normal">(optional)</span>
+                    </Label>
+                    <Textarea
+                      id="section-content-countdown"
+                      rows={2}
+                      placeholder="Optional description shown above the countdown"
+                      value={editingSection?.content ?? ""}
+                      onChange={(e) => setEditingSection({ ...editingSection, content: e.target.value })}
+                    />
+                  </div>
+                </>
+              )}
               <div className="flex items-center gap-2">
                 <Checkbox
                   id="section-hide-title"
@@ -578,21 +645,73 @@ export default function PageDetailPage() {
           <form onSubmit={(e) => { e.preventDefault(); saveItem(); }}>
             <DialogBody className="space-y-4 py-2">
               <div className="space-y-2">
-                <Label htmlFor="item-name">Name</Label>
+                <Label htmlFor="item-name">{currentSectionDisplayType === "METRIC" ? "Label" : "Name"}</Label>
                 <Input
                   id="item-name"
+                  placeholder={currentSectionDisplayType === "METRIC" ? "e.g. Pipeline (ACV)" : ""}
                   value={editingItem?.name ?? ""}
                   onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="item-url">URL</Label>
-                <Input
-                  id="item-url"
-                  value={editingItem?.href ?? ""}
-                  onChange={(e) => setEditingItem({ ...editingItem, href: e.target.value })}
-                />
-              </div>
+              {currentSectionDisplayType === "METRIC" && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="item-value">Value</Label>
+                    <Input
+                      id="item-value"
+                      placeholder="e.g. $98.9M"
+                      value={editingItem?.value ?? ""}
+                      onChange={(e) => setEditingItem({ ...editingItem, value: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="item-desc-metric">
+                      Subtitle <span className="text-muted-foreground font-normal">(optional)</span>
+                    </Label>
+                    <Input
+                      id="item-desc-metric"
+                      placeholder="e.g. total value"
+                      value={editingItem?.description ?? ""}
+                      onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="item-api-url">
+                      API URL <span className="text-muted-foreground font-normal">(optional, overrides manual value)</span>
+                    </Label>
+                    <Input
+                      id="item-api-url"
+                      type="url"
+                      placeholder="https://api.example.com/metrics"
+                      value={editingItem?.apiUrl ?? ""}
+                      onChange={(e) => setEditingItem({ ...editingItem, apiUrl: e.target.value })}
+                    />
+                  </div>
+                  {editingItem?.apiUrl && (
+                    <div className="space-y-2">
+                      <Label htmlFor="item-api-field">
+                        JSON Field Path
+                      </Label>
+                      <Input
+                        id="item-api-field"
+                        placeholder="e.g. data.total"
+                        value={editingItem?.apiField ?? ""}
+                        onChange={(e) => setEditingItem({ ...editingItem, apiField: e.target.value })}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+              {currentSectionDisplayType !== "METRIC" && (
+                <div className="space-y-2">
+                  <Label htmlFor="item-url">URL</Label>
+                  <Input
+                    id="item-url"
+                    value={editingItem?.href ?? ""}
+                    onChange={(e) => setEditingItem({ ...editingItem, href: e.target.value })}
+                  />
+                </div>
+              )}
               {currentSectionDisplayType === "TILE" && (
                 <>
                   <div className="space-y-2">

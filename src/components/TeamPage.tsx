@@ -1,10 +1,21 @@
 import { auth } from "@/auth";
 import Image from "next/image";
+import Markdown from "react-markdown";
 import AppHeader from "@/components/AppHeader";
 import PillNav from "@/components/PillNav";
 import BannerBar from "@/components/BannerBar";
+import CountdownTimer from "@/components/CountdownTimer";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+
+function getNestedValue(obj: unknown, path: string): unknown {
+  return path.split(".").reduce((acc: unknown, key) => {
+    if (acc && typeof acc === "object" && key in (acc as Record<string, unknown>)) {
+      return (acc as Record<string, unknown>)[key];
+    }
+    return undefined;
+  }, obj);
+}
 
 export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
   const session = await auth();
@@ -29,6 +40,26 @@ export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
       },
     },
   });
+
+  for (const ps of pageSections) {
+    if (ps.section.displayType !== "METRIC") continue;
+    await Promise.all(
+      ps.section.items.map(async (item) => {
+        if (!item.apiUrl) return;
+        try {
+          const res = await fetch(item.apiUrl, { next: { revalidate: 300 } });
+          if (!res.ok) return;
+          const json = await res.json();
+          const resolved = item.apiField ? getNestedValue(json, item.apiField) : json;
+          if (resolved !== undefined) {
+            (item as Record<string, unknown>).value = String(resolved);
+          }
+        } catch {
+          // fall back to manual value
+        }
+      })
+    );
+  }
 
   const navSettings = await prisma.setting.findMany({
     where: { key: { in: ["nav_visible", "nav_position"] } },
@@ -64,13 +95,58 @@ export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
 
         {pageSections.map((ps) => {
           const section = ps.section;
-          const visibleItems = section.items.filter((item) =>
-            section.displayType === "TILE" ? true : true
-          );
-
-          if (visibleItems.length === 0) return null;
-
+          const visibleItems = section.items.filter(() => true);
           const title = section.title;
+          const noItemTypes = ["TEXT", "COUNTDOWN"];
+
+          if (!noItemTypes.includes(section.displayType) && visibleItems.length === 0) return null;
+
+          if (section.displayType === "TEXT") {
+            if (!section.content) return null;
+            return (
+              <section key={ps.sectionId} className="mb-10">
+                {!section.hideTitle && <h2 className="typo-heading-lg mb-3">{title}</h2>}
+                <div className="bg-white rounded-xl border border-border p-6 prose prose-sm max-w-none prose-p:text-foreground prose-headings:text-foreground prose-a:text-blue-600 prose-strong:text-foreground">
+                  <Markdown>{section.content}</Markdown>
+                </div>
+              </section>
+            );
+          }
+
+          if (section.displayType === "COUNTDOWN") {
+            if (!section.targetDate) return null;
+            return (
+              <section key={ps.sectionId} className="mb-10">
+                {!section.hideTitle && <h2 className="typo-heading-lg mb-3">{title}</h2>}
+                <CountdownTimer
+                  targetDate={section.targetDate.toISOString()}
+                  label={section.content ?? undefined}
+                />
+              </section>
+            );
+          }
+
+          if (section.displayType === "METRIC") {
+            return (
+              <section key={ps.sectionId} className="mb-10">
+                {!section.hideTitle && <h2 className="typo-heading-lg mb-3">{title}</h2>}
+                <div className="flex gap-4 overflow-x-auto pb-2 -mb-2">
+                  {visibleItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="bg-white rounded-xl border border-border p-5 min-w-[180px] flex-shrink-0"
+                    >
+                      <p className="typo-body text-muted-foreground mb-1">{item.name}</p>
+                      <p className="text-2xl font-bold text-foreground">{item.value ?? "—"}</p>
+                      {item.description && (
+                        <p className="typo-meta mt-1">{item.description}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            );
+          }
 
           if (section.displayType === "BUTTON") {
             return (

@@ -11,6 +11,9 @@ enum DisplayType {
   BUTTON
   LINK
   TILE
+  METRIC
+  TEXT
+  COUNTDOWN
 }
 
 model User {
@@ -44,6 +47,8 @@ model Section {
   title       String
   hideTitle   Boolean     @default(false)
   displayType DisplayType
+  content     String?
+  targetDate  DateTime?
 
   pages PageSection[]
   items Item[]
@@ -64,9 +69,12 @@ model Item {
   id          String  @id @default(cuid())
   sectionId   String
   name        String
-  href        String
+  href        String  @default("")
   description String?
   image       String?
+  value       String?
+  apiUrl      String?
+  apiField    String?
   disabled    Boolean @default(false)
   order       Int     @default(0)
 

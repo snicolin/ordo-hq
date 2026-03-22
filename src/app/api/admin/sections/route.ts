@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const { title, hideTitle, displayType, pageAssignments } = body;
+  const { title, hideTitle, displayType, content, targetDate, pageAssignments } = body;
 
   if (!title || !displayType) {
     return NextResponse.json({ error: "title and displayType are required" }, { status: 400 });
@@ -39,6 +39,8 @@ export async function POST(req: Request) {
       title,
       hideTitle: !!hideTitle,
       displayType,
+      content: content ?? null,
+      targetDate: targetDate ? new Date(targetDate) : null,
       ...(pageAssignments && {
         pages: {
           create: pageAssignments.map((pa: { pageId: string; order: number }) => ({
@@ -60,7 +62,7 @@ export async function PUT(req: Request) {
   }
 
   const body = await req.json();
-  const { id, title, hideTitle, displayType, pageAssignments } = body;
+  const { id, title, hideTitle, displayType, content, targetDate, pageAssignments } = body;
 
   if (!id) {
     return NextResponse.json({ error: "id is required" }, { status: 400 });
@@ -72,6 +74,8 @@ export async function PUT(req: Request) {
       ...(title !== undefined && { title }),
       ...(hideTitle !== undefined && { hideTitle: !!hideTitle }),
       ...(displayType !== undefined && { displayType }),
+      ...(content !== undefined && { content: content || null }),
+      ...(targetDate !== undefined && { targetDate: targetDate ? new Date(targetDate) : null }),
     },
   });
 

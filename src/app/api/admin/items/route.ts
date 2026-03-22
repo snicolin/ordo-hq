@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/admin";
 
+function normalizeHref(href: string): string {
+  if (/^(https?:\/\/|mailto:|tel:|\/)/.test(href)) return href;
+  return `https://${href}`;
+}
+
 export async function GET(req: Request) {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -30,15 +35,21 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const { sectionId, name, href, description, image, disabled, pageIds } = body;
+  const { sectionId, name, href, description, image, value, apiUrl, apiField, disabled, pageIds } = body;
 
-  if (!sectionId || !name || !href) {
-    return NextResponse.json({ error: "sectionId, name, and href are required" }, { status: 400 });
+  if (!sectionId || !name) {
+    return NextResponse.json({ error: "sectionId and name are required" }, { status: 400 });
   }
 
   const section = await prisma.section.findUnique({ where: { id: sectionId } });
   if (!section) {
     return NextResponse.json({ error: "Section not found" }, { status: 404 });
+  }
+
+  const isMetric = section.displayType === "METRIC";
+
+  if (!isMetric && !href) {
+    return NextResponse.json({ error: "href is required" }, { status: 400 });
   }
 
   if (section.displayType === "TILE" && (!image || !description)) {
@@ -55,9 +66,12 @@ export async function POST(req: Request) {
     data: {
       sectionId,
       name,
-      href,
+      href: href ? normalizeHref(href) : "",
       description: description ?? null,
       image: image ?? null,
+      value: value ?? null,
+      apiUrl: apiUrl ?? null,
+      apiField: apiField ?? null,
       disabled: disabled ?? false,
       order: nextOrder,
       ...(pageIds && {
@@ -78,7 +92,7 @@ export async function PUT(req: Request) {
   }
 
   const body = await req.json();
-  const { id, name, href, description, image, disabled, pageIds } = body;
+  const { id, name, href, description, image, value, apiUrl, apiField, disabled, pageIds } = body;
 
   if (!id) {
     return NextResponse.json({ error: "id is required" }, { status: 400 });
@@ -104,9 +118,12 @@ export async function PUT(req: Request) {
     where: { id },
     data: {
       ...(name !== undefined && { name }),
-      ...(href !== undefined && { href }),
+      ...(href !== undefined && { href: href ? normalizeHref(href) : "" }),
       ...(description !== undefined && { description }),
       ...(image !== undefined && { image }),
+      ...(value !== undefined && { value: value || null }),
+      ...(apiUrl !== undefined && { apiUrl: apiUrl || null }),
+      ...(apiField !== undefined && { apiField: apiField || null }),
       ...(disabled !== undefined && { disabled }),
     },
   });
