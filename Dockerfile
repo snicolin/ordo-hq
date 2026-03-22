@@ -12,7 +12,18 @@ COPY . .
 RUN bunx prisma generate
 RUN bun run build
 
-# Stage 3: Runtime
+# Stage 3: Init (migrations + seed) — used by docker-compose "init" service
+FROM oven/bun:1-slim AS init
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=builder /app/src/generated ./src/generated
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY prisma ./prisma
+COPY scripts/deploy.sh ./scripts/deploy.sh
+RUN chmod +x ./scripts/deploy.sh
+CMD ["./scripts/deploy.sh"]
+
+# Stage 4: Runtime
 FROM node:20-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
@@ -27,16 +38,7 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/src/generated ./src/generated
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/dotenv ./node_modules/dotenv
-
-COPY scripts/deploy.sh ./scripts/deploy.sh
-RUN chmod +x ./scripts/deploy.sh
-
 USER nextjs
 EXPOSE 3000
 
-CMD ["./scripts/deploy.sh"]
+CMD ["node", "server.js"]

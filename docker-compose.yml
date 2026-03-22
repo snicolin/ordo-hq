@@ -6,8 +6,6 @@ services:
       POSTGRES_DB: ordo_hq
       POSTGRES_USER: ordo
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ordo_dev_password}
-    ports:
-      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -16,26 +14,57 @@ services:
       timeout: 5s
       retries: 5
 
-  app:
-    build: .
-    restart: unless-stopped
-    ports:
-      - "${PORT:-3000}:3000"
+  init:
+    build:
+      context: .
+      target: init
     depends_on:
       db:
         condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://ordo:${POSTGRES_PASSWORD:-ordo_dev_password}@db:5432/ordo_hq
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-hunter@ordoschools.com,sheila@ordoschools.com}
+      SEED_ON_DEPLOY: ${SEED_ON_DEPLOY:-false}
+    restart: "no"
+
+  app:
+    build: .
+    restart: unless-stopped
+    expose:
+      - "3000"
+    depends_on:
+      init:
+        condition: service_completed_successfully
     environment:
       DATABASE_URL: postgresql://ordo:${POSTGRES_PASSWORD:-ordo_dev_password}@db:5432/ordo_hq
       AUTH_SECRET: ${AUTH_SECRET}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       ADMIN_EMAILS: ${ADMIN_EMAILS:-hunter@ordoschools.com,sheila@ordoschools.com}
-      SEED_ON_DEPLOY: ${SEED_ON_DEPLOY:-false}
-      S3_BUCKET: ${S3_BUCKET:-}
-      S3_REGION: ${S3_REGION:-}
-      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_BUCKET: ${S3_BUCKET:-hq-space}
+      S3_REGION: ${S3_REGION:-sfo3}
+      S3_ENDPOINT: ${S3_ENDPOINT:-https://sfo3.digitaloceanspaces.com}
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
+    volumes:
+      - uploads:/app/public/uploads
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
 
 volumes:
   pgdata:
+  uploads:
+  caddy_data:
+  caddy_config:
