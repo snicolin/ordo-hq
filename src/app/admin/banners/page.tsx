@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AdminLoading, AdminEmpty, AdminSectionHeader, AdminCard } from "../components";
+import { AdminLoading, AdminEmpty, AdminSectionHeader, AdminCard, AdminRowActions } from "../components";
 import {
   Dialog,
   DialogBody,
@@ -17,13 +17,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -31,7 +24,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  MoreHorizontal,
   Pencil,
   Trash2,
   Megaphone,
@@ -242,28 +234,11 @@ export default function AdminBannersPage() {
                       </span>
                     )}
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      className="inline-flex items-center justify-center h-9 w-9 shrink-0 cursor-pointer rounded-lg hover:bg-muted transition-colors"
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        className="cursor-pointer"
-                        onClick={() => openEdit(banner)}
-                      >
-                        <Pencil className="h-4 w-4 mr-2" /> Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive cursor-pointer"
-                        onClick={() => deleteBanner(banner.id)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" /> Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <AdminRowActions actions={[
+                    { label: "Edit", icon: <Pencil className="h-4 w-4 mr-2" />, onClick: () => openEdit(banner) },
+                    "separator",
+                    { label: "Delete", icon: <Trash2 className="h-4 w-4 mr-2" />, onClick: () => deleteBanner(banner.id), destructive: true },
+                  ]} />
                 </div>
               );
             })}

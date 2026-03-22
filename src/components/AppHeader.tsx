@@ -2,6 +2,7 @@ import Link from "next/link";
 import UserMenu from "@/components/UserMenu";
 import { Badge } from "@/components/ui/badge";
 import { signOutAction } from "@/app/actions";
+import { containerClass } from "@/lib/styles";
 
 export default function AppHeader({
   userName,
@@ -16,7 +17,7 @@ export default function AppHeader({
 }) {
   return (
     <header className="bg-white border-b border-border">
-      <div className="max-w-6xl mx-auto px-4 md:px-8 py-5 flex items-center justify-between">
+      <div className={`${containerClass} py-5 flex items-center justify-between`}>
         <div className="flex items-end gap-3">
           <Link href="/">
             <img

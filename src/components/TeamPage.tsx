@@ -7,6 +7,7 @@ import BannerBar from "@/components/BannerBar";
 import CountdownTimer from "@/components/CountdownTimer";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import { containerClass } from "@/lib/styles";
 
 function getNestedValue(obj: unknown, path: string): unknown {
   return path.split(".").reduce((acc: unknown, key) => {
@@ -89,7 +90,7 @@ export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
         badge="HQ"
       />
 
-      <main className="max-w-6xl mx-auto px-8 py-6">
+      <main className={`${containerClass} py-6`}>
         <BannerBar />
         {navPosition === "top" && pillNav}
 

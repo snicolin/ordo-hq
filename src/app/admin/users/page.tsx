@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AdminLoading, AdminEmpty, AdminSectionHeader, AdminCard } from "../components";
+import { AdminLoading, AdminEmpty, AdminSectionHeader, AdminCard, AdminRowActions, type AdminAction } from "../components";
 import {
   Dialog,
   DialogBody,
@@ -31,6 +31,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+
 import type { Page } from "../types";
 
 type User = {
@@ -65,7 +66,6 @@ export default function AdminUsersPage() {
   const [pages, setPages] = useState<Page[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [groups, setGroups] = useState<GroupData[]>([]);
-  const [settings, setSettings] = useState<Record<string, string>>({});
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
@@ -87,14 +87,9 @@ export default function AdminUsersPage() {
     if (res.ok) setGroups(await res.json());
   }, []);
 
-  const fetchSettings = useCallback(async () => {
-    const res = await fetch("/api/admin/settings");
-    if (res.ok) setSettings(await res.json());
-  }, []);
-
   useEffect(() => {
-    Promise.all([fetchPages(), fetchUsers(), fetchGroups(), fetchSettings()]).then(() => setLoading(false));
-  }, [fetchPages, fetchUsers, fetchGroups, fetchSettings]);
+    Promise.all([fetchPages(), fetchUsers(), fetchGroups()]).then(() => setLoading(false));
+  }, [fetchPages, fetchUsers, fetchGroups]);
 
   async function toggleAdmin(userId: string, newStatus: boolean) {
     await fetch("/api/admin/users", {
@@ -166,15 +161,6 @@ export default function AdminUsersPage() {
     await Promise.all([fetchGroups(), fetchUsers()]);
   }
 
-  async function updateGroupDefaultPage(groupId: string, defaultPageId: string | null) {
-    await fetch("/api/admin/groups", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: groupId, action: "update", defaultPageId }),
-    });
-    await fetchGroups();
-  }
-
   function toggleGroup(groupId: string) {
     setExpandedGroups((prev) => {
       const next = new Set(prev);
@@ -184,7 +170,6 @@ export default function AdminUsersPage() {
     });
   }
 
-  const homepageMode = settings.homepage_mode ?? "global";
   const ungroupedUsers = users.filter((u) => !u.groupId);
 
   if (loading) return <AdminLoading />;
@@ -216,47 +201,11 @@ export default function AdminUsersPage() {
                         {group.members.length} {group.members.length === 1 ? "member" : "members"}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                      {homepageMode === "groups" && (
-                        <Select
-                          value={group.defaultPageId || "__home__"}
-                          onValueChange={(v) => updateGroupDefaultPage(group.id, v === "__home__" ? null : v)}
-                        >
-                          <SelectTrigger className="w-[120px] h-7 text-xs">
-                            <SelectValue>
-                              {group.defaultPageId
-                                ? pages.find((p) => p.id === group.defaultPageId)?.label ?? "Home"
-                                : "Home"}
-                            </SelectValue>
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__home__">Home</SelectItem>
-                            {pages.filter((p) => !p.isHome).map((p) => (
-                              <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                      {homepageMode !== "groups" && group.defaultPage && (
-                        <Badge variant="outline" className="text-xs font-normal">{group.defaultPage.label}</Badge>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive cursor-pointer"
-                        onClick={() => deleteGroup(group.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 cursor-pointer"
-                        onClick={() => setEditingGroup(group)}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
+                    <AdminRowActions actions={[
+                      { label: "Edit", icon: <Pencil className="h-4 w-4 mr-2" />, onClick: () => setEditingGroup(group) },
+                      "separator",
+                      { label: "Delete", icon: <Trash2 className="h-4 w-4 mr-2" />, onClick: () => deleteGroup(group.id), destructive: true },
+                    ]} />
                   </div>
 
                   {isExpanded && (
@@ -377,29 +326,27 @@ export default function AdminUsersPage() {
                   onChange={(e) => setEditingGroup({ ...editingGroup, name: e.target.value })}
                 />
               </div>
-              {homepageMode === "groups" && (
-                <div className="space-y-2">
-                  <Label>Default Page</Label>
-                  <Select
-                    value={editingGroup?.defaultPageId || "__home__"}
-                    onValueChange={(v) => setEditingGroup({ ...editingGroup, defaultPageId: v === "__home__" ? null : v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue>
-                        {editingGroup?.defaultPageId
-                          ? pages.find((p) => p.id === editingGroup.defaultPageId)?.label ?? "Home"
-                          : "Home"}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__home__">Home</SelectItem>
-                      {pages.filter((p) => !p.isHome).map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label>Default Page</Label>
+                <Select
+                  value={editingGroup?.defaultPageId || "__home__"}
+                  onValueChange={(v) => setEditingGroup({ ...editingGroup, defaultPageId: v === "__home__" ? null : v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue>
+                      {editingGroup?.defaultPageId
+                        ? pages.find((p) => p.id === editingGroup.defaultPageId)?.label ?? "Home"
+                        : "Home"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__home__">Home</SelectItem>
+                    {pages.filter((p) => !p.isHome).map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </DialogBody>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditingGroup(null)} className="cursor-pointer">Cancel</Button>

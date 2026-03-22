@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AdminLoading, AdminEmpty, AdminSectionHeader, AdminCard } from "./components";
+import { AdminLoading, AdminEmpty, AdminSectionHeader, AdminCard, AdminRowActions, type AdminAction } from "./components";
 import {
   Dialog,
   DialogBody,
@@ -17,14 +17,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
-  MoreHorizontal,
   ChevronUp,
   ChevronDown,
   ChevronRight,
@@ -36,8 +35,15 @@ import {
 } from "lucide-react";
 import type { Page } from "./types";
 
+type GroupData = {
+  id: string;
+  name: string;
+  defaultPageId: string | null;
+};
+
 export default function AdminContentPage() {
   const [pages, setPages] = useState<Page[]>([]);
+  const [groups, setGroups] = useState<GroupData[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingPage, setEditingPage] = useState<Partial<Page> | null>(null);
   const [settings, setSettings] = useState<Record<string, string>>({});
@@ -47,14 +53,19 @@ export default function AdminContentPage() {
     if (res.ok) setPages(await res.json());
   }, []);
 
+  const fetchGroups = useCallback(async () => {
+    const res = await fetch("/api/admin/groups");
+    if (res.ok) setGroups(await res.json());
+  }, []);
+
   const fetchSettings = useCallback(async () => {
     const res = await fetch("/api/admin/settings");
     if (res.ok) setSettings(await res.json());
   }, []);
 
   useEffect(() => {
-    Promise.all([fetchPages(), fetchSettings()]).then(() => setLoading(false));
-  }, [fetchPages, fetchSettings]);
+    Promise.all([fetchPages(), fetchGroups(), fetchSettings()]).then(() => setLoading(false));
+  }, [fetchPages, fetchGroups, fetchSettings]);
 
   async function updateSetting(key: string, value: string) {
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -62,6 +73,15 @@ export default function AdminContentPage() {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key, value }),
+    });
+  }
+
+  async function updateGroupDefaultPage(groupId: string, defaultPageId: string | null) {
+    setGroups((prev) => prev.map((g) => g.id === groupId ? { ...g, defaultPageId } : g));
+    await fetch("/api/admin/groups", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: groupId, action: "update", defaultPageId }),
     });
   }
 
@@ -141,39 +161,14 @@ export default function AdminContentPage() {
                 <span className="typo-meta">/{page.slug === "team" ? "" : page.slug}</span>
                 {page.isHome && <Badge variant="secondary" className="text-xs">Home</Badge>}
               </Link>
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  className="inline-flex items-center justify-center h-9 w-9 shrink-0 cursor-pointer rounded-lg hover:bg-muted transition-colors"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem className="cursor-pointer" onClick={() => setEditingPage(page)}>
-                    <Pencil className="h-4 w-4 mr-2" /> Edit
-                  </DropdownMenuItem>
-                  {!page.isHome && (
-                    <DropdownMenuItem className="cursor-pointer" onClick={() => setAsHome(page.id)}>
-                      <Home className="h-4 w-4 mr-2" /> Set as Home
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="cursor-pointer" disabled={idx === 0} onClick={() => reorderPages(page.id, "up")}>
-                    <ChevronUp className="h-4 w-4 mr-2" /> Move Up
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer" disabled={idx === pages.length - 1} onClick={() => reorderPages(page.id, "down")}>
-                    <ChevronDown className="h-4 w-4 mr-2" /> Move Down
-                  </DropdownMenuItem>
-                  {!page.isHome && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => deletePage(page.id)}>
-                        <Trash2 className="h-4 w-4 mr-2" /> Delete
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <AdminRowActions actions={[
+                { label: "Edit", icon: <Pencil className="h-4 w-4 mr-2" />, onClick: () => setEditingPage(page) },
+                ...(!page.isHome ? [{ label: "Set as Home", icon: <Home className="h-4 w-4 mr-2" />, onClick: () => setAsHome(page.id) }] as AdminAction[] : []),
+                "separator",
+                { label: "Move Up", icon: <ChevronUp className="h-4 w-4 mr-2" />, onClick: () => reorderPages(page.id, "up"), disabled: idx === 0 },
+                { label: "Move Down", icon: <ChevronDown className="h-4 w-4 mr-2" />, onClick: () => reorderPages(page.id, "down"), disabled: idx === pages.length - 1 },
+                ...(!page.isHome ? ["separator" as const, { label: "Delete", icon: <Trash2 className="h-4 w-4 mr-2" />, onClick: () => deletePage(page.id), destructive: true }] as AdminAction[] : []),
+              ]} />
               <Link href={`/admin/pages/${page.slug}`} className="shrink-0">
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </Link>
@@ -184,14 +179,14 @@ export default function AdminContentPage() {
       </section>
 
       <section className="mt-8">
-        <h2 className="typo-heading mb-3">Homepage Routing</h2>
-        <div className="bg-white rounded-xl border border-border p-3 flex flex-col gap-3 md:flex-row md:p-4">
+        <h2 className="typo-heading mb-3">Homepage</h2>
+        <div className="bg-white rounded-xl border border-border flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-border">
           <button
             onClick={() => updateSetting("homepage_mode", "global")}
-            className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-colors cursor-pointer ${
+            className={`flex-1 flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer first:rounded-t-xl last:rounded-b-xl md:first:rounded-l-xl md:first:rounded-tr-none md:last:rounded-r-xl md:last:rounded-bl-none ${
               homepageMode === "global"
-                ? "border-foreground bg-accent"
-                : "border-border hover:border-muted-foreground/30"
+                ? "bg-accent"
+                : "hover:bg-muted"
             }`}
           >
             <Globe className="h-5 w-5 shrink-0" />
@@ -202,10 +197,10 @@ export default function AdminContentPage() {
           </button>
           <button
             onClick={() => updateSetting("homepage_mode", "groups")}
-            className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-colors cursor-pointer ${
+            className={`flex-1 flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer first:rounded-t-xl last:rounded-b-xl md:first:rounded-l-xl md:first:rounded-tr-none md:last:rounded-r-xl md:last:rounded-bl-none ${
               homepageMode === "groups"
-                ? "border-foreground bg-accent"
-                : "border-border hover:border-muted-foreground/30"
+                ? "bg-accent"
+                : "hover:bg-muted"
             }`}
           >
             <Group className="h-5 w-5 shrink-0" />
@@ -215,6 +210,41 @@ export default function AdminContentPage() {
             </div>
           </button>
         </div>
+        {homepageMode === "groups" && (
+          <div className="mt-3">
+            <AdminCard>
+              {groups.length === 0 ? (
+                <div className="px-4 py-4 typo-meta text-center">
+                  No groups yet. Create groups in the Users tab to assign landing pages.
+                </div>
+              ) : (
+                groups.map((group) => (
+                  <div key={group.id} className="flex items-center gap-3 px-4 py-3 min-h-[48px]">
+                    <span className="typo-label text-foreground flex-1">{group.name}</span>
+                    <Select
+                      value={group.defaultPageId || "__home__"}
+                      onValueChange={(v) => updateGroupDefaultPage(group.id, v === "__home__" ? null : v)}
+                    >
+                      <SelectTrigger className="w-[160px] h-8 text-xs">
+                        <SelectValue>
+                          {group.defaultPageId
+                            ? pages.find((p) => p.id === group.defaultPageId)?.label ?? "Home"
+                            : "Home"}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__home__">Home</SelectItem>
+                        {pages.filter((p) => !p.isHome).map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))
+              )}
+            </AdminCard>
+          </div>
+        )}
       </section>
 
       <section className="mt-8">

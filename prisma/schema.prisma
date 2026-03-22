@@ -7,87 +7,72 @@ datasource db {
   provider = "postgresql"
 }
 
-enum DisplayType {
-  BUTTON
-  LINK
-  TILE
-  METRIC
-  TEXT
-  COUNTDOWN
-}
-
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  image     String?
-  isAdmin   Boolean  @default(false)
-  groupId   String?
-  lastLogin DateTime @default(now())
-  createdAt DateTime @default(now())
-
-  group             Group?            @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  bannerDismissals  BannerDismissal[]
+  id               String            @id @default(cuid())
+  email            String            @unique
+  name             String?
+  image            String?
+  isAdmin          Boolean           @default(false)
+  lastLogin        DateTime          @default(now())
+  createdAt        DateTime          @default(now())
+  groupId          String?
+  bannerDismissals BannerDismissal[]
+  group            Group?            @relation(fields: [groupId], references: [id])
 }
 
 model Page {
-  id     String  @id @default(cuid())
-  label  String
-  slug   String  @unique
-  order  Int     @default(0)
-  isHome Boolean @default(false)
-
-  sections   PageSection[]
-  itemPages  ItemPage[]
+  id         String        @id @default(cuid())
+  label      String
+  slug       String        @unique
+  order      Int           @default(0)
+  isHome     Boolean       @default(false)
   groupsHome Group[]       @relation("GroupDefaultPage")
+  itemPages  ItemPage[]
+  sections   PageSection[]
 }
 
 model Section {
-  id          String      @id @default(cuid())
+  id          String        @id @default(cuid())
   title       String
-  hideTitle   Boolean     @default(false)
   displayType DisplayType
+  hideTitle   Boolean       @default(false)
   content     String?
   targetDate  DateTime?
-
-  pages PageSection[]
-  items Item[]
+  items       Item[]
+  pages       PageSection[]
 }
 
 model PageSection {
-  pageId        String
-  sectionId     String
-  order         Int      @default(0)
-
-  page    Page    @relation(fields: [pageId], references: [id], onDelete: Cascade)
-  section Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  pageId    String
+  sectionId String
+  order     Int     @default(0)
+  page      Page    @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
   @@id([pageId, sectionId])
 }
 
 model Item {
-  id          String  @id @default(cuid())
+  id          String     @id @default(cuid())
   sectionId   String
   name        String
-  href        String  @default("")
+  href        String     @default("")
   description String?
   image       String?
-  value       String?
-  apiUrl      String?
+  disabled    Boolean    @default(false)
+  order       Int        @default(0)
   apiField    String?
-  disabled    Boolean @default(false)
-  order       Int     @default(0)
-
-  section Section    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  pages   ItemPage[]
+  apiUrl      String?
+  value       String?
+  section     Section    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  pages       ItemPage[]
 }
 
 model ItemPage {
   itemId String
   pageId String
-
-  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  page   Page   @relation(fields: [pageId], references: [id], onDelete: Cascade)
 
   @@id([itemId, pageId])
 }
@@ -97,37 +82,34 @@ model Group {
   name          String
   defaultPageId String?
   createdAt     DateTime @default(now())
-
-  defaultPage Page?    @relation("GroupDefaultPage", fields: [defaultPageId], references: [id], onDelete: SetNull)
-  members     User[]
-  banners     Banner[]
+  banners       Banner[]
+  defaultPage   Page?    @relation("GroupDefaultPage", fields: [defaultPageId], references: [id])
+  members       User[]
 }
 
 model Banner {
-  id          String   @id @default(cuid())
+  id          String            @id @default(cuid())
   title       String
   body        String?
-  color       String   @default("YELLOW")
+  dismissible Boolean           @default(true)
+  expiresAt   DateTime
+  targetType  String            @default("ALL")
+  groupId     String?
+  active      Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  color       String            @default("YELLOW")
   icon        String?
   link        String?
-  dismissible Boolean  @default(true)
-  expiresAt   DateTime
-  targetType  String   @default("ALL")
-  groupId     String?
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-
-  group      Group?            @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  dismissals BannerDismissal[]
+  group       Group?            @relation(fields: [groupId], references: [id])
+  dismissals  BannerDismissal[]
 }
 
 model BannerDismissal {
   userId      String
   bannerId    String
   dismissedAt DateTime @default(now())
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  banner Banner @relation(fields: [bannerId], references: [id], onDelete: Cascade)
+  banner      Banner   @relation(fields: [bannerId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, bannerId])
 }
@@ -135,4 +117,13 @@ model BannerDismissal {
 model Setting {
   key   String @id
   value String
+}
+
+enum DisplayType {
+  BUTTON
+  LINK
+  TILE
+  METRIC
+  TEXT
+  COUNTDOWN
 }

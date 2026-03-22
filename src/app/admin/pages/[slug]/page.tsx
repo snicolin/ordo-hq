@@ -6,10 +6,11 @@ import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { AutocompleteInput, type Suggestion } from "@/components/ui/autocomplete-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AdminLoading, AdminEmpty, AdminSectionHeader, AdminCard } from "../../components";
+import { AdminLoading, AdminEmpty, AdminSectionHeader, AdminCard, AdminRowActions, type AdminAction } from "../../components";
 import {
   Dialog,
   DialogBody,
@@ -19,13 +20,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -33,7 +27,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  MoreHorizontal,
   ChevronUp,
   ChevronDown,
   ChevronRight,
@@ -65,6 +58,7 @@ export default function PageDetailPage() {
 
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [itemSuggestions, setItemSuggestions] = useState<Suggestion[]>([]);
 
   const fetchPages = useCallback(async () => {
     const res = await fetch("/api/admin/pages");
@@ -77,6 +71,28 @@ export default function PageDetailPage() {
   const fetchSections = useCallback(async () => {
     const res = await fetch("/api/admin/sections");
     if (res.ok) setSections(await res.json());
+  }, []);
+
+  const fetchItemSuggestions = useCallback(async () => {
+    const res = await fetch("/api/admin/items");
+    if (!res.ok) return;
+    const data: Item[] = await res.json();
+    const seen = new Set<string>();
+    const suggestions: Suggestion[] = [];
+    for (const item of data) {
+      const key = `${item.name}||${item.href}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      suggestions.push({
+        label: item.name,
+        value: item.href,
+        meta: {
+          description: item.description ?? null,
+          image: item.image ?? null,
+        },
+      });
+    }
+    setItemSuggestions(suggestions);
   }, []);
 
   const fetchItemsForSection = useCallback(async (sectionId: string, pageId: string) => {
@@ -97,6 +113,10 @@ export default function PageDetailPage() {
       fetchItemsForSection(sectionId, page.id);
     });
   }, [expandedSections, page, fetchItemsForSection]);
+
+  useEffect(() => {
+    if (editingItem && !editingItem.id) fetchItemSuggestions();
+  }, [editingItem, fetchItemSuggestions]);
 
   const pageSections = page?.sections?.sort((a, b) => a.order - b.order) ?? [];
 
@@ -310,53 +330,23 @@ export default function PageDetailPage() {
                       {ps.section.hideTitle && <Badge variant="secondary" className="text-xs font-normal">hidden title</Badge>}
                       <span className="typo-meta">{itemCount} {itemCount === 1 ? "item" : "items"}</span>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        className="inline-flex items-center justify-center h-9 w-9 shrink-0 cursor-pointer rounded-lg hover:bg-muted transition-colors"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="cursor-pointer" onClick={() => {
-                          const sec = sections.find((s) => s.id === ps.sectionId);
-                          if (sec) {
-                            setEditingSection({ ...sec });
-                          }
-                        }}>
-                          <Pencil className="h-4 w-4 mr-2" /> Edit
-                        </DropdownMenuItem>
-                        {!["TEXT", "COUNTDOWN"].includes(ps.section.displayType) && (
-                          <DropdownMenuItem className="cursor-pointer" onClick={() => {
-                            setEditingSectionId(ps.sectionId);
-                            setEditingItem({
-                              name: "",
-                              href: "",
-                              description: "",
-                              image: "",
-                              value: null,
-                              apiUrl: null,
-                              apiField: null,
-                              disabled: false,
-                              sectionId: ps.sectionId,
-                            });
-                          }}>
-                            <Plus className="h-4 w-4 mr-2" /> Add Item
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="cursor-pointer" disabled={idx === 0} onClick={() => reorderPageSections(ps.sectionId, "up")}>
-                          <ChevronUp className="h-4 w-4 mr-2" /> Move Up
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer" disabled={idx === pageSections.length - 1} onClick={() => reorderPageSections(ps.sectionId, "down")}>
-                          <ChevronDown className="h-4 w-4 mr-2" /> Move Down
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => deleteSection(ps.sectionId)}>
-                          <Trash2 className="h-4 w-4 mr-2" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <AdminRowActions actions={[
+                      { label: "Edit", icon: <Pencil className="h-4 w-4 mr-2" />, onClick: () => {
+                        const sec = sections.find((s) => s.id === ps.sectionId);
+                        if (sec) setEditingSection({ ...sec });
+                      }},
+                      ...(!["TEXT", "COUNTDOWN"].includes(ps.section.displayType) ? [{
+                        label: "Add Item", icon: <Plus className="h-4 w-4 mr-2" />, onClick: () => {
+                          setEditingSectionId(ps.sectionId);
+                          setEditingItem({ name: "", href: "", description: "", image: "", value: null, apiUrl: null, apiField: null, disabled: false, sectionId: ps.sectionId });
+                        },
+                      }] as AdminAction[] : []),
+                      "separator",
+                      { label: "Move Up", icon: <ChevronUp className="h-4 w-4 mr-2" />, onClick: () => reorderPageSections(ps.sectionId, "up"), disabled: idx === 0 },
+                      { label: "Move Down", icon: <ChevronDown className="h-4 w-4 mr-2" />, onClick: () => reorderPageSections(ps.sectionId, "down"), disabled: idx === pageSections.length - 1 },
+                      "separator",
+                      { label: "Delete", icon: <Trash2 className="h-4 w-4 mr-2" />, onClick: () => deleteSection(ps.sectionId), destructive: true },
+                    ]} />
                   </div>
 
                   {isExpanded && (
@@ -393,34 +383,15 @@ export default function PageDetailPage() {
                                     : item.href}
                                 </p>
                               </div>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger className="inline-flex items-center justify-center h-8 w-8 shrink-0 cursor-pointer rounded-lg hover:bg-muted transition-colors">
-                                  <MoreHorizontal className="h-3.5 w-3.5" />
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem className="cursor-pointer" onClick={() => {
-                                    setEditingSectionId(item.sectionId);
-                                    setEditingItem({ ...item });
-                                  }}>
-                                    <Pencil className="h-4 w-4 mr-2" /> Edit
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem className="cursor-pointer" onClick={() => toggleItemDisabled(item)}>
-                                    {item.disabled ? <Eye className="h-4 w-4 mr-2" /> : <EyeOff className="h-4 w-4 mr-2" />}
-                                    {item.disabled ? "Enable" : "Disable"}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="cursor-pointer" disabled={itemIdx === 0} onClick={() => reorderItems(ps.sectionId, item.id, "up")}>
-                                    <ChevronUp className="h-4 w-4 mr-2" /> Move Up
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem className="cursor-pointer" disabled={itemIdx === items.length - 1} onClick={() => reorderItems(ps.sectionId, item.id, "down")}>
-                                    <ChevronDown className="h-4 w-4 mr-2" /> Move Down
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => deleteItem(item)}>
-                                    <Trash2 className="h-4 w-4 mr-2" /> Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                              <AdminRowActions size="sm" actions={[
+                                { label: "Edit", icon: <Pencil className="h-4 w-4 mr-2" />, onClick: () => { setEditingSectionId(item.sectionId); setEditingItem({ ...item }); }},
+                                { label: item.disabled ? "Enable" : "Disable", icon: item.disabled ? <Eye className="h-4 w-4 mr-2" /> : <EyeOff className="h-4 w-4 mr-2" />, onClick: () => toggleItemDisabled(item) },
+                                "separator",
+                                { label: "Move Up", icon: <ChevronUp className="h-4 w-4 mr-2" />, onClick: () => reorderItems(ps.sectionId, item.id, "up"), disabled: itemIdx === 0 },
+                                { label: "Move Down", icon: <ChevronDown className="h-4 w-4 mr-2" />, onClick: () => reorderItems(ps.sectionId, item.id, "down"), disabled: itemIdx === items.length - 1 },
+                                "separator",
+                                { label: "Delete", icon: <Trash2 className="h-4 w-4 mr-2" />, onClick: () => deleteItem(item), destructive: true },
+                              ]} />
                             </div>
                           ))}
                           {items.length === 0 && (
@@ -605,12 +576,31 @@ export default function PageDetailPage() {
             <DialogBody className="space-y-4 py-2">
               <div className="space-y-2">
                 <Label htmlFor="item-name">{currentSectionDisplayType === "METRIC" ? "Label" : "Name"}</Label>
-                <Input
-                  id="item-name"
-                  placeholder={currentSectionDisplayType === "METRIC" ? "e.g. Pipeline (ACV)" : ""}
-                  value={editingItem?.name ?? ""}
-                  onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
-                />
+                {!editingItem?.id ? (
+                  <AutocompleteInput
+                    id="item-name"
+                    placeholder={currentSectionDisplayType === "METRIC" ? "e.g. Pipeline (ACV)" : ""}
+                    value={editingItem?.name ?? ""}
+                    onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+                    suggestions={itemSuggestions}
+                    onSelect={(s) =>
+                      setEditingItem({
+                        ...editingItem,
+                        name: s.label,
+                        href: s.value,
+                        description: s.meta?.description ?? editingItem?.description,
+                        image: s.meta?.image ?? editingItem?.image,
+                      })
+                    }
+                  />
+                ) : (
+                  <Input
+                    id="item-name"
+                    placeholder={currentSectionDisplayType === "METRIC" ? "e.g. Pipeline (ACV)" : ""}
+                    value={editingItem?.name ?? ""}
+                    onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+                  />
+                )}
               </div>
               {currentSectionDisplayType === "METRIC" && (
                 <>

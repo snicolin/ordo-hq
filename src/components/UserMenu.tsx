@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function UserMenu({
   firstName,
@@ -16,6 +17,7 @@ export default function UserMenu({
 }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -26,6 +28,18 @@ export default function UserMenu({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.metaKey && e.key === "/") {
+        e.preventDefault();
+        router.push(isOnAdmin ? "/" : "/admin");
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isAdmin, isOnAdmin, router]);
 
   return (
     <div className="relative" ref={menuRef}>

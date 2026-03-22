@@ -3,6 +3,7 @@ import { isAdmin } from "@/lib/admin";
 import { auth } from "@/auth";
 import AppHeader from "@/components/AppHeader";
 import AdminNav from "./AdminNav";
+import { containerClass } from "@/lib/styles";
 
 export default async function AdminLayout({
   children,
@@ -24,7 +25,7 @@ export default async function AdminLayout({
         isOnAdmin={true}
         badge="Admin"
       />
-        <div className="max-w-6xl mx-auto px-8 py-6 pb-24">
+        <div className={`${containerClass} py-6 pb-24`}>
         <div className="mb-6">
           <AdminNav />
         </div>
