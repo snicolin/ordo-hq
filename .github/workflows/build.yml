@@ -8,7 +8,7 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: oven-sh/setup-bun@v2
 
@@ -28,11 +28,11 @@ jobs:
       packages: write
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: depot/setup-action@v1
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -58,5 +58,6 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
             cd /opt/ordo-hq
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
             ./scripts/deploy-zero-downtime.sh

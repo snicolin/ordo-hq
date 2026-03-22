@@ -28,6 +28,7 @@ services:
     restart: "no"
 
   app:
+    image: ghcr.io/snicolin/ordo-hq:latest
     build: .
     restart: unless-stopped
     expose:
