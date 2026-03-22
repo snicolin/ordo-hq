@@ -180,7 +180,7 @@ export default function AdminContentPage() {
 
       <section className="mt-8">
         <h2 className="typo-heading mb-3">Homepage</h2>
-        <div className="bg-white rounded-xl border border-border flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-border">
+        <div className="bg-card rounded-xl border border-border flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-border">
           <button
             onClick={() => updateSetting("homepage_mode", "global")}
             className={`flex-1 flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer first:rounded-t-xl last:rounded-b-xl md:first:rounded-l-xl md:first:rounded-tr-none md:last:rounded-r-xl md:last:rounded-bl-none ${
@@ -249,7 +249,7 @@ export default function AdminContentPage() {
 
       <section className="mt-8">
         <h2 className="typo-heading mb-3">Page Navigation</h2>
-        <div className="bg-white rounded-xl border border-border px-4 py-3 flex flex-col gap-3 md:flex-row md:items-center md:gap-6">
+        <div className="bg-card rounded-xl border border-border px-4 py-3 flex flex-col gap-3 md:flex-row md:items-center md:gap-6">
           <div className="flex items-center gap-2">
             <Checkbox
               id="nav-visible"
@@ -271,7 +271,7 @@ export default function AdminContentPage() {
                   className={`px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors ${
                     navPosition === "top"
                       ? "bg-foreground text-background"
-                      : "bg-white text-foreground hover:bg-muted"
+                      : "bg-card text-foreground hover:bg-muted"
                   }`}
                 >
                   Top
@@ -281,7 +281,7 @@ export default function AdminContentPage() {
                   className={`px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors border-l border-border ${
                     navPosition === "bottom"
                       ? "bg-foreground text-background"
-                      : "bg-white text-foreground hover:bg-muted"
+                      : "bg-card text-foreground hover:bg-muted"
                   }`}
                 >
                   Bottom

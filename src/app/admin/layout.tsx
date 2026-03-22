@@ -18,7 +18,7 @@ export default async function AdminLayout({
   const session = await auth();
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7]">
+    <div className="min-h-screen bg-background">
       <AppHeader
         userName={session?.user?.name?.split(" ")[0] ?? session?.user?.email?.split("@")[0]}
         isAdmin={true}

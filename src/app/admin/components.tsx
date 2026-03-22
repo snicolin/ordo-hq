@@ -47,7 +47,7 @@ export function AdminSectionHeader({
 
 export function AdminCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-xl border border-border divide-y divide-border">
+    <div className="bg-card rounded-xl border border-border divide-y divide-border">
       {children}
     </div>
   );

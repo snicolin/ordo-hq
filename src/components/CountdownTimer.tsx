@@ -45,7 +45,7 @@ export default function CountdownTimer({
   ];
 
   return (
-    <div className="bg-white rounded-xl border border-border p-6 text-center">
+    <div className="bg-card rounded-xl border border-border p-6 text-center">
       {label && (
         <p className="typo-body text-muted-foreground mb-4">{label}</p>
       )}

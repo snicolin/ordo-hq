@@ -64,7 +64,7 @@ export default function UserMenu({
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-border py-1 z-50">
+        <div className="absolute right-0 mt-2 w-40 bg-popover rounded-lg shadow-lg border border-border py-1 z-50">
           {isAdmin && (
             <Link
               href={isOnAdmin ? "/" : "/admin"}

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { AutocompleteInput, type Suggestion } from "@/components/ui/autocomplete-input";
 import { Textarea } from "@/components/ui/textarea";
+import RichTextEditor from "@/components/RichTextEditor";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AdminLoading, AdminEmpty, AdminSectionHeader, AdminCard, AdminRowActions, type AdminAction } from "../../components";
@@ -474,7 +475,7 @@ export default function PageDetailPage() {
 
       {/* Section Dialog */}
       <Dialog open={!!editingSection} onOpenChange={(open) => !open && setEditingSection(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className={editingSection?.displayType === "TEXT" ? "sm:max-w-2xl" : "sm:max-w-md"}>
           <DialogHeader>
             <DialogTitle>{editingSection?.id ? "Edit Section" : "Add Section"}</DialogTitle>
           </DialogHeader>
@@ -511,13 +512,11 @@ export default function PageDetailPage() {
               </div>
               {editingSection?.displayType === "TEXT" && (
                 <div className="space-y-2">
-                  <Label htmlFor="section-content">Content (Markdown)</Label>
-                  <Textarea
-                    id="section-content"
-                    rows={6}
-                    placeholder="Write your content in markdown..."
+                  <Label>Content</Label>
+                  <RichTextEditor
                     value={editingSection?.content ?? ""}
-                    onChange={(e) => setEditingSection({ ...editingSection, content: e.target.value })}
+                    onChange={(html) => setEditingSection({ ...editingSection, content: html })}
+                    placeholder="Start typing..."
                   />
                 </div>
               )}
@@ -678,7 +677,7 @@ export default function PageDetailPage() {
                           className="w-full h-32 object-cover"
                         />
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                          <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-foreground text-xs font-medium rounded-md hover:bg-muted transition-colors">
+                          <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-card text-foreground text-xs font-medium rounded-md hover:bg-muted transition-colors">
                             <Upload className="h-3 w-3" />
                             Replace
                             <input
@@ -693,7 +692,7 @@ export default function PageDetailPage() {
                           </label>
                           <button
                             type="button"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-destructive text-xs font-medium rounded-md hover:bg-muted transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-card text-destructive text-xs font-medium rounded-md hover:bg-muted transition-colors cursor-pointer"
                             onClick={() => setEditingItem({ ...editingItem, image: "" })}
                           >
                             <X className="h-3 w-3" />

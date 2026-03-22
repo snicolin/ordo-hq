@@ -1,6 +1,5 @@
 import { auth } from "@/auth";
 import Image from "next/image";
-import Markdown from "react-markdown";
 import AppHeader from "@/components/AppHeader";
 import PillNav from "@/components/PillNav";
 import AlertBar from "@/components/AlertBar";
@@ -83,7 +82,7 @@ export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
   ) : null;
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7]">
+    <div className="min-h-screen bg-background">
       <AppHeader
         userName={session?.user?.name?.split(" ")[0] ?? session?.user?.email?.split("@")[0]}
         isAdmin={isAdmin}
@@ -104,11 +103,16 @@ export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
 
           if (section.displayType === "TEXT") {
             if (!section.content) return null;
+            const isHtml = /<[a-z][\s\S]*>/i.test(section.content);
             return (
               <section key={ps.sectionId} className="mb-10">
                 {!section.hideTitle && <h2 className="typo-heading-lg mb-3">{title}</h2>}
-                <div className="bg-white rounded-xl border border-border p-6 prose prose-sm max-w-none prose-p:text-foreground prose-headings:text-foreground prose-a:text-blue-600 prose-strong:text-foreground">
-                  <Markdown>{section.content}</Markdown>
+                <div className="bg-card rounded-xl border border-border p-6 rich-content text-sm max-w-none">
+                  {isHtml ? (
+                    <div dangerouslySetInnerHTML={{ __html: section.content }} />
+                  ) : (
+                    <p className="whitespace-pre-wrap">{section.content}</p>
+                  )}
                 </div>
               </section>
             );
@@ -135,7 +139,7 @@ export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
                   {visibleItems.map((item) => (
                     <div
                       key={item.id}
-                      className="bg-white rounded-xl border border-border p-5 min-w-[180px] flex-shrink-0"
+                      className="bg-card rounded-xl border border-border p-5 min-w-[180px] flex-shrink-0"
                     >
                       <p className="typo-body text-muted-foreground mb-1">{item.name}</p>
                       <p className="text-2xl font-bold text-foreground">{item.value ?? "—"}</p>
@@ -160,7 +164,7 @@ export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
                       href={item.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="typo-label text-foreground bg-white hover:bg-muted active:bg-accent px-5 py-3 rounded-lg border border-border transition-all duration-150"
+                      className="typo-label text-foreground bg-card hover:bg-muted active:bg-accent px-5 py-3 rounded-lg border border-border transition-all duration-150"
                     >
                       {item.name}
                     </a>
@@ -187,7 +191,7 @@ export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
                         className={`rounded-xl p-4 border flex flex-col ${
                           item.disabled
                             ? "bg-muted border-border opacity-50 cursor-not-allowed"
-                            : "bg-white border-border shadow-sm hover:shadow-md transition-shadow"
+                            : "bg-card border-border shadow-sm hover:shadow-md transition-shadow"
                         }`}
                       >
                         {item.image && (

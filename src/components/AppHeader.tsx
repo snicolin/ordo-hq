@@ -16,7 +16,7 @@ export default function AppHeader({
   badge?: string;
 }) {
   return (
-    <header className="bg-white border-b border-border">
+    <header className="bg-card border-b border-border">
       <div className={`${containerClass} py-5 flex items-center justify-between`}>
         <div className="flex items-end gap-3">
           <Link href="/">

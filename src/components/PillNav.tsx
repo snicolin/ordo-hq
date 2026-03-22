@@ -23,8 +23,8 @@ export default function PillNav({
         const isActive = item.key === activeKey;
         const cls = `px-4 py-2.5 rounded-md typo-label transition-all ${
           isActive
-            ? "bg-white text-foreground shadow-sm"
-            : "text-muted-foreground hover:text-foreground hover:bg-white/50"
+            ? "bg-card text-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground hover:bg-card/50"
         }`;
 
         if (item.href && !onSelect) {

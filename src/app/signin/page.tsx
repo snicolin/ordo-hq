@@ -17,8 +17,8 @@ export default async function SignInPage({
   const error = params?.error;
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl shadow-lg p-8 max-w-sm w-full text-center">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <div className="bg-card rounded-2xl shadow-lg p-8 max-w-sm w-full text-center">
         <div className="mb-6">
           <Image
             src="/images/ordo-icon.png"
