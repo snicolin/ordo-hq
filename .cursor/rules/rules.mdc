@@ -99,13 +99,19 @@ For dynamic options (IDs as values), resolve the label from your data:
 
 ## Agent Tools Sync
 
+**Any change to admin functionality must update `src/lib/agent-tools.ts` in the same PR.**
+
 When creating or modifying an admin API route (`src/app/api/admin/*/route.ts`):
 
 1. Every operation the admin API supports must have a corresponding agent tool in `src/lib/agent-tools.ts`.
 2. Every field the admin API accepts must be in the tool's `inputSchema`.
 3. Read tools get an `execute` function. Write tools are schema-only with a matching entry in `writeToolExecutors`.
 4. If a new read tool is added, update the `READ_TOOLS` set in `src/components/search-dialog.tsx`.
-5. The agent must have full parity with the admin UI — never ship an admin capability without a matching agent tool.
+5. All validation and safety guards in the API route must be replicated in the executor (e.g. TILE image/description checks, self-demotion prevention, reserved slug checks).
+6. Read tools must return all fields the AI needs to make informed decisions — don't omit fields that the write tools accept.
+7. When items are created via agent, auto-link to relevant pages if the AI doesn't specify `pageIds`.
+
+Never ship an admin capability without a matching agent tool.
 
 ## Don't
 

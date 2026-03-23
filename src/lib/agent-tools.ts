@@ -1,6 +1,7 @@
 import { tool } from "ai";
 import { z } from "zod/v3";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 import { isEnvAdmin } from "@/lib/admin";
 import { DisplayType } from "@/generated/prisma/enums";
 
@@ -80,7 +81,9 @@ const readTools = {
           content: ps.section.content,
           items: ps.section.items.map((i) => ({
             id: i.id, name: i.name, href: i.href,
-            description: i.description, disabled: i.disabled,
+            description: i.description, image: i.image,
+            value: i.value, apiUrl: i.apiUrl, apiField: i.apiField,
+            disabled: i.disabled,
           })),
         })),
       };
@@ -111,12 +114,14 @@ const readTools = {
         include: {
           _count: { select: { members: true } },
           defaultPage: { select: { id: true, label: true } },
+          members: { orderBy: { name: "asc" }, select: { id: true, name: true, email: true } },
         },
       });
       return groups.map((g) => ({
         id: g.id, name: g.name,
         memberCount: g._count.members,
         defaultPage: g.defaultPage,
+        members: g.members,
       }));
     },
   }),
@@ -514,6 +519,14 @@ export const writeToolExecutors: Record<string, (args: Record<string, unknown>) 
     if (section.displayType === "TILE" && (!image || !description)) {
       return { error: "TILE items require both image and description" };
     }
+    let resolvedPageIds = pageIds;
+    if (!resolvedPageIds?.length) {
+      const pageSections = await prisma.pageSection.findMany({
+        where: { sectionId },
+        select: { pageId: true },
+      });
+      resolvedPageIds = pageSections.map((ps) => ps.pageId);
+    }
     const maxOrder = await prisma.item.aggregate({ where: { sectionId }, _max: { order: true } });
     const item = await prisma.item.create({
       data: {
@@ -526,8 +539,8 @@ export const writeToolExecutors: Record<string, (args: Record<string, unknown>) 
         apiField: apiField ?? null,
         disabled: disabled ?? false,
         order: (maxOrder._max.order ?? -1) + 1,
-        ...(pageIds?.length && {
-          pages: { create: pageIds.map((pageId) => ({ pageId })) },
+        ...(resolvedPageIds.length && {
+          pages: { create: resolvedPageIds.map((pageId) => ({ pageId })) },
         }),
       },
     });
@@ -539,6 +552,15 @@ export const writeToolExecutors: Record<string, (args: Record<string, unknown>) 
       id: string; name?: string; href?: string; description?: string;
       image?: string; value?: string; apiUrl?: string; apiField?: string; disabled?: boolean;
     };
+    const existing = await prisma.item.findUnique({ where: { id }, include: { section: true } });
+    if (!existing) return { error: "Item not found" };
+    if (existing.section.displayType === "TILE") {
+      const finalImage = image !== undefined ? image : existing.image;
+      const finalDesc = description !== undefined ? description : existing.description;
+      if (!finalImage || !finalDesc) {
+        return { error: "TILE items require both image and description" };
+      }
+    }
     const item = await prisma.item.update({
       where: { id },
       data: {
@@ -662,6 +684,10 @@ export const writeToolExecutors: Record<string, (args: Record<string, unknown>) 
     if (newAdminStatus !== undefined) {
       if (isEnvAdmin(user.email)) {
         return { error: "Cannot modify env-based admin status" };
+      }
+      const session = await auth();
+      if (user.email === session?.user?.email && !newAdminStatus) {
+        return { error: "Cannot remove your own admin status" };
       }
     }
 

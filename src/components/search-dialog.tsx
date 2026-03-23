@@ -520,7 +520,7 @@ export function SearchDialog({ isAdmin }: { isAdmin?: boolean }) {
     for (const p of pending) {
       await handleApprove(p);
     }
-  }, [handleApprove]);
+  }, [handleApprove, agentMessages]);
 
   function getPendingToolParts(): ToolPart[] {
     const pending: ToolPart[] = [];
@@ -664,7 +664,7 @@ export function SearchDialog({ isAdmin }: { isAdmin?: boolean }) {
           </div>
         )}
         <div className="p-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-end gap-2">
             <Textarea
               ref={askInputRef}
               value={askInput}
@@ -672,11 +672,11 @@ export function SearchDialog({ isAdmin }: { isAdmin?: boolean }) {
               onKeyDown={handleAskKeyDown}
               placeholder="Ask about your portal data..."
               rows={1}
-              className="resize-none text-sm min-h-[36px]"
+              className="resize-none text-sm min-h-[36px] max-h-[120px] overflow-y-auto field-sizing-content"
             />
             <Button
               size="sm"
-              className="shrink-0 h-9 w-9 p-0"
+              className="shrink-0 self-stretch min-h-9 w-11 p-0 rounded-lg"
               disabled={!showAskStopIcon && !askInput.trim()}
               onClick={handleAskButtonClick}
             >
@@ -830,7 +830,7 @@ export function SearchDialog({ isAdmin }: { isAdmin?: boolean }) {
           </div>
         )}
         <div className="p-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-end gap-2">
             <Textarea
               ref={agentInputRef}
               value={agentInput}
@@ -838,11 +838,11 @@ export function SearchDialog({ isAdmin }: { isAdmin?: boolean }) {
               onKeyDown={handleAgentKeyDown}
               placeholder="Tell me what to set up..."
               rows={1}
-              className="resize-none text-sm min-h-[36px]"
+              className="resize-none text-sm min-h-[36px] max-h-[120px] overflow-y-auto field-sizing-content"
             />
             <Button
               size="sm"
-              className="shrink-0 h-9 w-9 p-0"
+              className="shrink-0 self-stretch min-h-9 w-11 p-0 rounded-lg"
               disabled={!showAgentStopIcon && !agentInput.trim()}
               onClick={handleAgentButtonClick}
             >

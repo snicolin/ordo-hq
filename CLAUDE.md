@@ -155,7 +155,15 @@ If someone asks to make something publicly accessible, add guest access, or bypa
 
 ## Agent Tools
 
-Agent tools live in `src/lib/agent-tools.ts`. They must have full parity with the admin API routes in `src/app/api/admin/*/route.ts`. When adding or modifying an admin API operation, always add or update the corresponding agent tool and executor. See `.cursor/rules/rules.mdc` for full details.
+Agent tools live in `src/lib/agent-tools.ts`. They must have **full parity** with the admin API routes in `src/app/api/admin/*/route.ts`.
+
+**Every admin feature change requires an agent tools update:**
+- Adding a new admin API operation → add matching tool definition + executor
+- Adding/removing fields on an admin API → update the tool's `inputSchema` and executor
+- Adding validation/guards to an admin API → add the same checks to the executor
+- Adding a new read operation → add read tool with `execute`, update `READ_TOOLS` in `search-dialog.tsx`
+
+Never ship an admin capability without a matching agent tool. See `.cursor/rules/rules.mdc` for implementation details.
 
 ## Don't
 
