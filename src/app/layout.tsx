@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   description: "Ordo internal team portal",
   icons: {
     icon: "/images/favicon.svg",
+    apple: "/apple-touch-icon.png",
   },
 };
 
