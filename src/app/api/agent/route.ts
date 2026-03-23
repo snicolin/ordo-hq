@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/admin";
 import { buildPortalContext, applyPromptTemplate } from "@/lib/portal-context";
 import { agentTools } from "@/lib/agent-tools";
+import { DEFAULT_MODEL } from "@/lib/ai-models";
 
 const DEFAULT_AGENT_PROMPT = `You are an admin assistant for Ordo HQ, an internal team portal.
 You can both answer questions AND take actions to manage the portal using your tools.
@@ -52,9 +53,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const [apiKeySetting, promptSetting] = await Promise.all([
+    const [apiKeySetting, promptSetting, modelSetting] = await Promise.all([
       prisma.setting.findUnique({ where: { key: "anthropic_api_key" } }),
       prisma.setting.findUnique({ where: { key: "agent_system_prompt" } }),
+      prisma.setting.findUnique({ where: { key: "ai_model" } }),
     ]);
 
     const apiKey = apiKeySetting?.value || process.env.ANTHROPIC_API_KEY;
@@ -81,9 +83,10 @@ export async function POST(request: NextRequest) {
     const systemPrompt = applyPromptTemplate(promptTemplate, context);
 
     const anthropic = createAnthropic({ apiKey });
+    const modelId = modelSetting?.value || DEFAULT_MODEL;
 
     const result = streamText({
-      model: anthropic("claude-sonnet-4-20250514"),
+      model: anthropic(modelId),
       system: systemPrompt,
       messages: await convertToModelMessages(messages),
       tools: agentTools,

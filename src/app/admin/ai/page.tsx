@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AdminLoading, AdminSectionHeader, AdminCard } from "../components";
 import { Key, Save, RotateCcw, Eye, EyeOff, Check, CircleAlert, ChevronRight, ExternalLink } from "lucide-react";
+import { AI_MODELS, DEFAULT_MODEL } from "@/lib/ai-models";
 
 const DEFAULT_PROMPT = `You are a helpful assistant for Ordo HQ, an internal team portal.
 You answer questions about the portal's pages, sections, items, users, groups, and alerts using the data provided below.
@@ -77,6 +79,7 @@ interface AISettings {
   source: "database" | "environment" | null;
   systemPrompt: string | null;
   agentSystemPrompt: string | null;
+  model: string | null;
 }
 
 export default function AdminAIPage() {
@@ -89,6 +92,9 @@ export default function AdminAIPage() {
   const [agentPrompt, setAgentPrompt] = useState("");
   const [savingPrompt, setSavingPrompt] = useState(false);
   const [savingAgentPrompt, setSavingAgentPrompt] = useState(false);
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
+  const [savingModel, setSavingModel] = useState(false);
+  const [modelSaved, setModelSaved] = useState(false);
   const [keySaved, setKeySaved] = useState(false);
   const [promptSaved, setPromptSaved] = useState(false);
   const [agentPromptSaved, setAgentPromptSaved] = useState(false);
@@ -101,6 +107,7 @@ export default function AdminAIPage() {
       setSettings(data);
       setSystemPrompt(data.systemPrompt || DEFAULT_PROMPT);
       setAgentPrompt(data.agentSystemPrompt || DEFAULT_AGENT_PROMPT);
+      setSelectedModel(data.model || DEFAULT_MODEL);
     } catch (err) {
       console.error("Failed to load AI settings:", err);
     } finally {
@@ -129,6 +136,25 @@ export default function AdminAIPage() {
       console.error("Failed to save API key:", err);
     } finally {
       setSavingKey(false);
+    }
+  };
+
+  const saveModel = async (modelId: string) => {
+    setSelectedModel(modelId);
+    setSavingModel(true);
+    try {
+      const res = await fetch("/api/admin/ai", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: modelId }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      setModelSaved(true);
+      setTimeout(() => setModelSaved(false), 2000);
+    } catch (err) {
+      console.error("Failed to save model:", err);
+    } finally {
+      setSavingModel(false);
     }
   };
 
@@ -298,6 +324,42 @@ export default function AdminAIPage() {
               <p>
                 Or set via <code className="bg-muted px-1 py-0.5 rounded text-[11px]">ANTHROPIC_API_KEY</code> environment variable.
               </p>
+            </div>
+          </div>
+        </AdminCard>
+      </div>
+
+      {/* Model */}
+      <div>
+        <AdminSectionHeader title="Model" />
+        <AdminCard>
+          <div className="p-4 space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Select the Claude model used for both Ask and Agent modes.
+            </p>
+            <div className="flex items-center gap-3">
+              <Select value={selectedModel} onValueChange={saveModel}>
+                <SelectTrigger className="w-full md:w-64">
+                  <SelectValue>
+                    {AI_MODELS.find((m) => m.id === selectedModel)?.label || selectedModel}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {AI_MODELS.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {savingModel && (
+                <span className="text-xs text-muted-foreground">Saving...</span>
+              )}
+              {modelSaved && (
+                <span className="flex items-center gap-1 text-xs text-success-foreground">
+                  <Check className="h-3.5 w-3.5" /> Saved
+                </span>
+              )}
             </div>
           </div>
         </AdminCard>

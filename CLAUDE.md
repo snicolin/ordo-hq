@@ -2,7 +2,7 @@
 
 > ⚠️ **THIS FILE IS COMMITTED TO GIT.** Do not add sensitive data: no emails, URLs, passwords, API keys, or secrets. Use environment variable references instead.
 
-Internal team portal for Ordo.
+Internal team portal for Ordo. Authenticated users see pages of organized links/tools grouped into sections.
 
 ## Package Manager
 
@@ -19,6 +19,85 @@ This project uses **Bun**. Always use `bun` instead of `npm` or `npx`.
 | `bun add <pkg>` | Add a dependency |
 | `bun remove <pkg>` | Remove a dependency |
 | `bun install` | Install all dependencies |
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Package Manager | Bun |
+| Framework | Next.js 16 (App Router) |
+| UI | React 19 + Tailwind CSS v4 + shadcn/ui (`src/components/ui/`) |
+| Auth | NextAuth v5 (Google OAuth, domain-restricted — see `src/auth.ts`) |
+| Database | PostgreSQL via Prisma (schema: `prisma/schema.prisma`, client: `src/generated/prisma/`) |
+| Deployment | GitHub Actions CI/CD, Docker (blue-green), Caddy reverse proxy, DigitalOcean droplet |
+
+## Auth
+
+Access is restricted to `@ordoschools.com` and `@ordo.com` Google accounts. Config is in `src/auth.ts`.
+
+## Architecture
+
+```
+src/
+├── app/
+│   ├── page.tsx              # Home — renders TeamPage for the isHome page
+│   ├── [slug]/page.tsx       # Dynamic pages — renders TeamPage by slug
+│   ├── admin/                # Admin panel (Content, Users, Alerts tabs)
+│   │   ├── page.tsx          # Content: pages, homepage routing, nav settings
+│   │   ├── users/page.tsx    # Users: user mgmt, groups, homepage routing
+│   │   ├── alerts/page.tsx   # Alerts: create/edit/delete announcements
+│   │   ├── pages/[slug]/     # Page detail: sections and items CRUD
+│   │   ├── components.tsx    # Shared admin UI (AdminLoading, AdminEmpty, etc.)
+│   │   ├── types.ts          # Shared admin types (Page, Section, Item, etc.)
+│   │   └── AdminNav.tsx      # Admin tab navigation
+│   ├── signin/               # NextAuth sign-in page
+│   └── api/
+│       ├── admin/            # Admin API routes (all require isAdmin)
+│       │   ├── pages/        # CRUD for Page model
+│       │   ├── sections/     # CRUD for Section model
+│       │   ├── items/        # CRUD for Item model
+│       │   ├── reorder/      # Reorder pages/sections/items
+│       │   ├── groups/       # CRUD for Group model
+│       │   ├── users/        # User management
+│       │   ├── alerts/       # CRUD for Alert model
+│       │   ├── settings/     # Key-value settings (GET/PUT)
+│       │   └── upload/       # Image upload
+│       └── alerts/           # Public alert endpoints (authenticated, non-admin)
+├── components/
+│   ├── TeamPage.tsx          # Main page renderer (server component)
+│   ├── AppHeader.tsx         # Site header with logo, badge, user menu
+│   ├── AlertBar.tsx          # Dismissible announcement alerts
+│   ├── PillNav.tsx           # Pill-style tab navigation
+│   ├── UserMenu.tsx          # User dropdown menu
+│   └── ui/                   # shadcn/ui primitives
+├── lib/
+│   ├── prisma.ts             # Prisma client singleton
+│   ├── admin.ts              # isAdmin() helper
+│   ├── storage.ts            # File storage helpers
+│   └── utils.ts              # General utilities
+└── auth.ts                   # NextAuth config
+```
+
+## Data Model
+
+- **Page** — a named tab (e.g. HQ, Growth, Ops). Has a slug, order, and optional isHome flag.
+- **Section** — a group of items with a title, displayType (BUTTON/LINK/TILE), and hideTitle toggle.
+- **PageSection** — join table assigning sections to pages with ordering.
+- **Item** — a link/tool with name, href, description, image, disabled flag, and order.
+- **ItemPage** — join table controlling which items appear on which pages.
+- **Group** — user groups with optional default page (for per-group homepage routing).
+- **Alert** — announcements with title, body, color, icon, link, expiry, targeting (all or group), and dismissible flag.
+- **AlertDismissal** — tracks which users dismissed which alerts.
+- **Setting** — key-value config (homepage_mode, nav_visible, nav_position).
+
+## Key Patterns
+
+- **TeamPage** is a server component that queries Prisma directly — no API call needed.
+- **Admin pages** are `'use client'` components that fetch from `/api/admin/*` routes.
+- All admin API routes check `isAdmin()` and return 403 if not authorized.
+- Settings use a generic key-value model with an `ALLOWED_KEYS` whitelist in the API route.
+- Use the existing dialog/form patterns from `src/app/admin/page.tsx` as reference.
+- Settings use `PUT /api/admin/settings` with `{ key, value }` — add new keys to `ALLOWED_KEYS`.
 
 ## Git Workflow
 
@@ -46,19 +125,6 @@ This project uses **Bun**. Always use `bun` instead of `npm` or `npx`.
 1. `git stash` — save local changes
 2. `git fetch origin main && git reset --hard origin/main`
 
-## Tech Stack
-
-| Layer | Technology |
-|-------|------------|
-| Package Manager | Bun |
-| Framework | Next.js 16 (App Router) |
-| UI | React 19 + Tailwind CSS v4 |
-| Auth | NextAuth v5 (Google OAuth, domain-restricted) |
-
-## Auth
-
-Access is restricted to `@ordoschools.com` and `@ordo.com` Google accounts. Config is in `src/auth.ts`.
-
 ## Deployment
 
 Pushes to `main` trigger a GitHub Actions pipeline: lint/typecheck, Docker build via Depot, push to GHCR, then blue-green deploy to a DigitalOcean droplet.
@@ -75,10 +141,10 @@ Pushes to `main` trigger a GitHub Actions pipeline: lint/typecheck, Docker build
 
 | File | Purpose |
 |------|---------|
-| `Dockerfile` | Multi-stage build (deps, builder, runner) |
-| `docker-compose.yml` | Blue/green services, Postgres, Caddy |
-| `Caddyfile` | Reverse proxy config (upstream switches between blue/green) |
-| `scripts/deploy.sh` | Blue-green deploy script (lock, migrate, health check, switch) |
+| `Dockerfile` | Multi-stage build (deps via bun, builder via bun, runner via node:20-slim) |
+| `docker-compose.yml` | Blue/green app services, Postgres, Caddy — uses `x-app` YAML anchor (edit the anchor, not individual services) |
+| `Caddyfile` | Reverse proxy; upstream switches between `blue:3000` / `green:3000` (managed by deploy script — don't hardcode a slot) |
+| `scripts/deploy.sh` | Blue-green deploy (lock, pull, migrate, health check, Caddy switch) |
 | `.github/workflows/build.yml` | CI/CD pipeline |
 
 ### Manual deploy
@@ -87,22 +153,19 @@ Pushes to `main` trigger a GitHub Actions pipeline: lint/typecheck, Docker build
 ssh root@<server> "cd /opt/ordo-hq && ./scripts/deploy.sh <image_tag>"
 ```
 
+### Health check
+
+The `api/health` route (`src/app/api/health/route.ts`) must stay unauthenticated — it's used by Docker health checks.
+
 ## Code Style
 
-### TypeScript
-- Use strict mode
-- Prefer explicit types over `any`
-- Use path aliases: `@/lib/*`, `@/components/*`, `@/app/*`
-
-### React / Next.js
-- Use Server Components by default
-- Add `'use client'` only when hooks or interactivity are needed
-- Prefer async Server Components for data fetching
-
-### Styling
-- Use Tailwind CSS exclusively
-- No inline styles
-- **Mobile-first** — write mobile styles as the default, add `md:` / `lg:` for desktop (see below)
+- Server Components by default. `'use client'` only when hooks/interactivity are needed.
+- Prefer async Server Components for data fetching.
+- Tailwind CSS exclusively. No inline styles.
+- Strict TypeScript. No `any`. Use path aliases (`@/lib/*`, `@/components/*`, `@/app/*`).
+- Early returns over nested conditionals.
+- Business logic in `src/lib/`, not in components.
+- Check `src/components/ui/` for existing shadcn components before creating new ones.
 
 ## Code Quality
 
@@ -114,7 +177,15 @@ ssh root@<server> "cd /opt/ordo-hq && ./scripts/deploy.sh <image_tag>"
 | One function = one job | Easier to test and understand |
 | Reuse before creating | Check existing components/helpers before building new ones |
 | Avoid premature abstraction | Duplicate twice before abstracting |
-| Keep rules/context lean | Build components, don't document them inline — rules files guide behavior, not store code |
+| Keep rules/context lean | Build components, don't document them inline |
+
+### DRY specifics
+
+- **Extract shared logic into `src/lib/`** — if two components use the same fetch/transform/validation, make a helper.
+- **Extract shared UI into `src/components/`** — if a pattern appears twice, componentize it.
+- **Reuse existing components** — always check `src/components/` and `src/components/ui/` before building something new.
+- **Constants and config in one place** — no magic strings scattered across files. Use `src/lib/` for shared constants.
+- **Shared types in dedicated files** — don't redeclare the same interface in multiple files.
 
 ## Mobile-First Responsive Design
 
@@ -148,22 +219,57 @@ If someone asks to make something publicly accessible, add guest access, or bypa
 ## API Routes
 
 - **🔐 ALWAYS check the session first** — Return 401 if not authenticated
+- All admin API routes check `isAdmin()` and return 401/403 if unauthorized
 - Return JSON responses with `NextResponse.json()`
 - Use proper HTTP status codes (201 create, 400 validation, 401 auth, 404 not found, 500 error)
 - Validate required fields before any operation
 - Log errors to console for debugging
 
-## Agent Tools
+## Select Component — Always Pass Explicit Labels
+
+The `Select` uses Base UI with a Portal. `SelectValue` **cannot resolve item labels** until the dropdown opens, so it falls back to showing the raw `value` prop (e.g. "ALL" instead of "Everyone").
+
+**Always pass children to `SelectValue` with the display label:**
+
+```tsx
+<SelectValue>
+  {value === "ALL" ? "Everyone" : "Specific Group"}
+</SelectValue>
+```
+
+For dynamic options (IDs as values), resolve the label from your data:
+
+```tsx
+<SelectValue>
+  {items.find((i) => i.id === selectedId)?.name ?? "Fallback"}
+</SelectValue>
+```
+
+**Never use bare `<SelectValue />`** — the trigger will show raw enum values or UUIDs.
+
+## Prisma
+
+- Schema: `prisma/schema.prisma`. Client output: `src/generated/prisma/`.
+- After schema changes: `bun prisma migrate dev` then `bun prisma generate`.
+- **Restart dev server** after `prisma generate` — the running server caches the old client.
+
+## Agent Tools Sync
+
+**Any change to admin functionality must update `src/lib/agent-tools.ts` in the same PR.**
 
 Agent tools live in `src/lib/agent-tools.ts`. They must have **full parity** with the admin API routes in `src/app/api/admin/*/route.ts`.
 
-**Every admin feature change requires an agent tools update:**
-- Adding a new admin API operation → add matching tool definition + executor
-- Adding/removing fields on an admin API → update the tool's `inputSchema` and executor
-- Adding validation/guards to an admin API → add the same checks to the executor
-- Adding a new read operation → add read tool with `execute`, update `READ_TOOLS` in `search-dialog.tsx`
+When creating or modifying an admin API route:
 
-Never ship an admin capability without a matching agent tool. See `.cursor/rules/rules.mdc` for implementation details.
+1. Every operation the admin API supports must have a corresponding agent tool.
+2. Every field the admin API accepts must be in the tool's `inputSchema`.
+3. Read tools get an `execute` function. Write tools are schema-only with a matching entry in `writeToolExecutors`.
+4. If a new read tool is added, update the `READ_TOOLS` set in `src/components/search-dialog.tsx`.
+5. All validation and safety guards in the API route must be replicated in the executor (e.g. TILE image/description checks, self-demotion prevention, reserved slug checks).
+6. Read tools must return all fields the AI needs to make informed decisions — don't omit fields that the write tools accept.
+7. When items are created via agent, auto-link to relevant pages if the AI doesn't specify `pageIds`.
+
+Never ship an admin capability without a matching agent tool.
 
 ## Don't
 
@@ -175,7 +281,7 @@ Never ship an admin capability without a matching agent tool. See `.cursor/rules
 - Don't commit `.env.local` or any secrets
 - Don't duplicate code — extract shared logic to `lib/`, shared UI to `components/`
 - Don't forget loading and error states
-- Don't let rules/context files bloat — keep them short, actionable directives; build reusable components instead of embedding code or lengthy patterns in rules
+- Don't let rules/context files bloat — keep them short, actionable directives
 
 ## Do
 

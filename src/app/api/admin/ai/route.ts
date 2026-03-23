@@ -12,10 +12,11 @@ export async function GET() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const [apiKeySetting, promptSetting, agentPromptSetting] = await Promise.all([
+  const [apiKeySetting, promptSetting, agentPromptSetting, modelSetting] = await Promise.all([
     prisma.setting.findUnique({ where: { key: "anthropic_api_key" } }),
     prisma.setting.findUnique({ where: { key: "ai_system_prompt" } }),
     prisma.setting.findUnique({ where: { key: "agent_system_prompt" } }),
+    prisma.setting.findUnique({ where: { key: "ai_model" } }),
   ]);
 
   const envKey = process.env.ANTHROPIC_API_KEY;
@@ -28,6 +29,7 @@ export async function GET() {
     source: apiKeySetting?.value ? "database" : envKey ? "environment" : null,
     systemPrompt: promptSetting?.value || null,
     agentSystemPrompt: agentPromptSetting?.value || null,
+    model: modelSetting?.value || null,
   });
 }
 
@@ -37,10 +39,11 @@ export async function PUT(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { apiKey, systemPrompt, agentSystemPrompt } = body as {
+  const { apiKey, systemPrompt, agentSystemPrompt, model } = body as {
     apiKey?: string;
     systemPrompt?: string | null;
     agentSystemPrompt?: string | null;
+    model?: string;
   };
 
   const updates: Promise<unknown>[] = [];
@@ -85,6 +88,16 @@ export async function PUT(request: NextRequest) {
         }),
       );
     }
+  }
+
+  if (model !== undefined) {
+    updates.push(
+      prisma.setting.upsert({
+        where: { key: "ai_model" },
+        update: { value: model },
+        create: { key: "ai_model", value: model },
+      }),
+    );
   }
 
   await Promise.all(updates);
