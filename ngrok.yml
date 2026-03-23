@@ -1,0 +1,8 @@
+version: "2"
+
+tunnels:
+  ordo-hq:
+    proto: http
+    addr: 3000
+    domain: hunter2.ngrok.dev
+    inspect: true

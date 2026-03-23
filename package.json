@@ -11,7 +11,10 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:push": "prisma db push",
-    "db:seed": "bun run prisma/seed.ts"
+    "db:seed": "bun run prisma/seed.ts",
+    "dev:tunnel": "bash scripts/dev-tunnel.sh",
+    "dev:tunnel:clean": "bash scripts/dev-tunnel.sh --clean",
+    "dev:tunnel:open": "bash scripts/dev-tunnel.sh --open"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1014.0",

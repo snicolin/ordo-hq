@@ -86,7 +86,7 @@ function ToolbarButton({
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={`p-1.5 rounded transition-colors cursor-pointer ${
+      className={`p-2.5 md:p-1.5 rounded transition-colors cursor-pointer ${
         active
           ? "bg-foreground/10 text-foreground"
           : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
@@ -116,7 +116,7 @@ function BlockTypeDropdown({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors cursor-pointer"
+        className="flex items-center gap-1 px-2 py-2 md:py-1 rounded text-sm md:text-xs font-medium text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors cursor-pointer"
       >
         {current.icon}
         <span>{current.label}</span>
@@ -132,7 +132,7 @@ function BlockTypeDropdown({
                 onSelect(block.value);
                 setOpen(false);
               }}
-              className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer transition-colors ${
+              className={`w-full flex items-center gap-2 px-3 py-2.5 md:py-1.5 text-sm md:text-xs cursor-pointer transition-colors ${
                 currentType === block.value
                   ? "bg-foreground/5 text-foreground font-medium"
                   : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
@@ -182,12 +182,12 @@ function LinkDialog({
           }
           if (e.key === "Escape") onClose();
         }}
-        className="h-7 px-2 text-xs rounded border border-input bg-transparent outline-none focus:border-ring w-[200px]"
+        className="h-9 md:h-7 px-2 text-base md:text-xs rounded border border-input bg-transparent outline-none focus:border-ring w-[200px]"
       />
       <button
         type="button"
         onClick={() => url.trim() && onSubmit(url.trim())}
-        className="h-7 px-2 text-xs rounded bg-foreground text-background font-medium cursor-pointer hover:opacity-90 transition-opacity"
+        className="h-9 md:h-7 px-2 text-sm md:text-xs rounded bg-foreground text-background font-medium cursor-pointer hover:opacity-90 transition-opacity"
       >
         Save
       </button>
@@ -196,7 +196,7 @@ function LinkDialog({
           type="button"
           onClick={onRemove}
           title="Remove link"
-          className="h-7 px-1.5 text-xs rounded text-destructive hover:bg-destructive/10 cursor-pointer transition-colors"
+          className="h-9 md:h-7 px-1.5 text-sm md:text-xs rounded text-destructive hover:bg-destructive/10 cursor-pointer transition-colors"
         >
           <Unlink className="h-3.5 w-3.5" />
         </button>

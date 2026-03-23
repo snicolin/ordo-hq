@@ -129,7 +129,7 @@ function AutocompleteInput({
             <li
               key={`${s.label}-${s.value}`}
               className={cn(
-                "flex cursor-pointer flex-col rounded-md px-2.5 py-1.5 text-sm",
+                "flex cursor-pointer flex-col rounded-md px-2.5 py-2.5 md:py-1.5 text-base md:text-sm",
                 i === highlightIndex && "bg-accent"
               )}
               onMouseEnter={() => setHighlightIndex(i)}

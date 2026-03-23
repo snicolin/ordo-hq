@@ -23,6 +23,7 @@ export function getDisplayName(session: Session): string {
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
+  trustHost: true,
   callbacks: {
     async signIn({ account, profile }) {
       if (account?.provider === "google") {

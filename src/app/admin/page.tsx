@@ -229,7 +229,7 @@ export default function AdminContentPage() {
                       value={group.defaultPageId || "__home__"}
                       onValueChange={(v) => updateGroupDefaultPage(group.id, v === "__home__" ? null : v)}
                     >
-                      <SelectTrigger className="w-[160px] h-8 text-xs">
+                      <SelectTrigger className="w-[160px] text-base md:text-xs">
                         <SelectValue>
                           {group.defaultPageId
                             ? pages.find((p) => p.id === group.defaultPageId)?.label ?? "Home"
@@ -262,7 +262,7 @@ export default function AdminContentPage() {
                 updateSetting("nav_visible", checked ? "true" : "false")
               }
             />
-            <Label htmlFor="nav-visible" className="cursor-pointer text-sm">
+            <Label htmlFor="nav-visible" className="cursor-pointer">
               Show navigation tabs
             </Label>
           </div>
@@ -272,7 +272,7 @@ export default function AdminContentPage() {
               <div className="flex rounded-lg border border-border overflow-hidden">
                 <button
                   onClick={() => updateSetting("nav_position", "top")}
-                  className={`px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors ${
+                  className={`px-3 py-2.5 md:py-1.5 text-base md:text-xs font-medium cursor-pointer transition-colors ${
                     navPosition === "top"
                       ? "bg-foreground text-background"
                       : "bg-card text-foreground hover:bg-muted"
@@ -282,7 +282,7 @@ export default function AdminContentPage() {
                 </button>
                 <button
                   onClick={() => updateSetting("nav_position", "bottom")}
-                  className={`px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors border-l border-border ${
+                  className={`px-3 py-2.5 md:py-1.5 text-base md:text-xs font-medium cursor-pointer transition-colors border-l border-border ${
                     navPosition === "bottom"
                       ? "bg-foreground text-background"
                       : "bg-card text-foreground hover:bg-muted"

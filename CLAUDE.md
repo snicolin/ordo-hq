@@ -69,6 +69,7 @@ Pushes to `main` trigger a GitHub Actions pipeline: lint/typecheck, Docker build
 - **GHCR** for container images (SHA-tagged)
 - **SCP** syncs deploy files to server (no git clone on server)
 - **Prisma migrations** run automatically; destructive migrations block the deploy
+- **Caddy must be restarted (not reloaded)** after switching upstreams — SCP creates new file inodes, and `caddy reload` reads from the old inode via the stale bind mount
 
 ### Key files
 

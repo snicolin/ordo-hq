@@ -407,7 +407,7 @@ export default function PageDetailPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-xs cursor-pointer"
+                              className="cursor-pointer"
                               onClick={() => {
                                 setEditingSectionId(ps.sectionId);
                                 setEditingItem({
@@ -693,7 +693,7 @@ export default function PageDetailPage() {
                           className="w-full h-32 object-cover"
                         />
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                          <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-card text-foreground text-xs font-medium rounded-md hover:bg-muted transition-colors">
+                          <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2.5 md:py-1.5 bg-card text-foreground text-base md:text-xs font-medium rounded-md hover:bg-muted transition-colors">
                             <Upload className="h-3 w-3" />
                             Replace
                             <input
@@ -708,7 +708,7 @@ export default function PageDetailPage() {
                           </label>
                           <button
                             type="button"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-card text-destructive text-xs font-medium rounded-md hover:bg-muted transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-3 py-2.5 md:py-1.5 bg-card text-destructive text-base md:text-xs font-medium rounded-md hover:bg-muted transition-colors cursor-pointer"
                             onClick={() => setEditingItem({ ...editingItem, image: "" })}
                           >
                             <X className="h-3 w-3" />
@@ -756,7 +756,7 @@ export default function PageDetailPage() {
                       placeholder="Or paste image URL"
                       value={editingItem?.image ?? ""}
                       onChange={(e) => setEditingItem({ ...editingItem, image: e.target.value })}
-                      className="h-7 text-xs"
+                      className="text-base md:text-xs"
                     />
                   </div>
                 </>

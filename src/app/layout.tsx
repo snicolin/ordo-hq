@@ -22,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`font-sans ${outfit.variable}`}>
-      <body className="antialiased">
+      <body className="antialiased overflow-x-hidden">
         {children}
       </body>
     </html>

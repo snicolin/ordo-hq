@@ -269,20 +269,20 @@ export default function AdminAlertsPage() {
                   <button
                     type="button"
                     onClick={() => patchEditing({ color: "YELLOW" })}
-                    className={`flex-1 h-9 rounded-md border-2 transition-colors cursor-pointer bg-yellow-100 ${
+                    className={`flex-1 h-10 md:h-9 rounded-md border-2 transition-colors cursor-pointer bg-yellow-100 ${
                       editing?.color === "YELLOW" ? "border-yellow-500 ring-2 ring-yellow-200" : "border-yellow-200 hover:border-yellow-300"
                     }`}
                   >
-                    <span className="text-xs font-medium text-yellow-800">Yellow</span>
+                    <span className="text-base md:text-xs font-medium text-yellow-800">Yellow</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => patchEditing({ color: "GRAY" })}
-                    className={`flex-1 h-9 rounded-md border-2 transition-colors cursor-pointer bg-gray-100 ${
+                    className={`flex-1 h-10 md:h-9 rounded-md border-2 transition-colors cursor-pointer bg-gray-100 ${
                       editing?.color === "GRAY" ? "border-gray-500 ring-2 ring-gray-200" : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
-                    <span className="text-xs font-medium text-gray-600">Gray</span>
+                    <span className="text-base md:text-xs font-medium text-gray-600">Gray</span>
                   </button>
                 </div>
               </div>

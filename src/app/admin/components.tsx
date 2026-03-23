@@ -69,9 +69,9 @@ export function AdminRowActions({
   size?: "default" | "sm";
 }) {
   const triggerClass = size === "sm"
-    ? "inline-flex items-center justify-center h-8 w-8 shrink-0 cursor-pointer rounded-lg hover:bg-muted transition-colors"
-    : "inline-flex items-center justify-center h-9 w-9 shrink-0 cursor-pointer rounded-lg hover:bg-muted transition-colors";
-  const iconClass = size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4";
+    ? "inline-flex items-center justify-center h-11 w-11 md:h-8 md:w-8 shrink-0 cursor-pointer rounded-lg hover:bg-muted transition-colors"
+    : "inline-flex items-center justify-center h-11 w-11 md:h-9 md:w-9 shrink-0 cursor-pointer rounded-lg hover:bg-muted transition-colors";
+  const iconClass = size === "sm" ? "h-4 w-4 md:h-3.5 md:w-3.5" : "h-5 w-5 md:h-4 md:w-4";
 
   return (
     <DropdownMenu>

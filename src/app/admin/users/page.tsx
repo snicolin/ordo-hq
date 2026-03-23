@@ -255,7 +255,7 @@ export default function AdminUsersPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-xs cursor-pointer"
+                          className="cursor-pointer"
                           onClick={() => setAddingMembersGroupId(group.id)}
                         >
                           <Plus className="h-3 w-3 mr-1" /> Add Members
