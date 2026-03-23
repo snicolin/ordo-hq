@@ -16,14 +16,14 @@ export default function PillNav({
   activeKey: string;
 }) {
   return (
-    <nav className="inline-flex items-center gap-0.5 rounded-lg bg-muted p-1 max-w-full overflow-x-auto overscroll-none scrollbar-hide">
+    <nav className="inline-flex items-center gap-0.5 rounded-lg bg-foreground/[0.06] p-1 max-w-full overflow-x-auto overscroll-none scrollbar-hide">
       {items.map((item) => {
         const isActive = item.key === activeKey;
         return (
           <Link
             key={item.key}
             href={item.href}
-            className={`shrink-0 whitespace-nowrap px-4 py-3 md:py-2.5 rounded-md text-base md:text-sm font-medium transition-all ${
+            className={`shrink-0 whitespace-nowrap px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
               isActive
                 ? "bg-card text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground hover:bg-card/50"
