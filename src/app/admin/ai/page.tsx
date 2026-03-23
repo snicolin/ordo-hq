@@ -338,7 +338,7 @@ export default function AdminAIPage() {
               Select the Claude model used for both Ask and Agent modes.
             </p>
             <div className="flex items-center gap-3">
-              <Select value={selectedModel} onValueChange={saveModel}>
+              <Select value={selectedModel} onValueChange={(v) => v && saveModel(v)}>
                 <SelectTrigger className="w-full md:w-64">
                   <SelectValue>
                     {AI_MODELS.find((m) => m.id === selectedModel)?.label || selectedModel}
