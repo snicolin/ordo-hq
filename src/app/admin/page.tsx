@@ -302,7 +302,7 @@ export default function AdminContentPage() {
             <DialogTitle>{editingPage?.id ? "Edit Page" : "Add Page"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); savePage(); }}>
-            <DialogBody className="space-y-4 py-2">
+            <DialogBody className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="page-label">Label</Label>
                 <Input

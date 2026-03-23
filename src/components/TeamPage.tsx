@@ -234,7 +234,7 @@ export default async function TeamPage({ pageSlug }: { pageSlug: string }) {
                     <span key={item.id} className="flex items-center">
                       <a
                         href={item.href}
-                        className="typo-body text-blue-600 hover:text-blue-800 hover:underline px-2 py-2 rounded transition-colors"
+                        className="typo-body text-link hover:text-link-hover hover:underline px-2 py-2 rounded transition-colors"
                       >
                         {item.name}
                       </a>

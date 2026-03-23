@@ -37,6 +37,13 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --link: oklch(0.546 0.245 262.881);
+  --link-hover: oklch(0.424 0.199 265.638);
+  --success: oklch(0.950 0.052 163.051);
+  --success-foreground: oklch(0.432 0.095 166.255);
+  --warning: oklch(0.987 0.026 102.212);
+  --warning-foreground: oklch(0.476 0.114 61.907);
+  --warning-border: oklch(0.945 0.129 101.542);
 }
 
 @theme inline {
@@ -74,6 +81,13 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-link: var(--link);
+  --color-link-hover: var(--link-hover);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-border: var(--warning-border);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -123,6 +137,13 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --link: oklch(0.707 0.165 254.624);
+  --link-hover: oklch(0.787 0.128 248.552);
+  --success: oklch(0.262 0.058 165.258);
+  --success-foreground: oklch(0.845 0.143 164.978);
+  --warning: oklch(0.328 0.078 57.032);
+  --warning-foreground: oklch(0.945 0.129 101.542);
+  --warning-border: oklch(0.554 0.135 66.442);
 }
 
 @layer base {
@@ -197,7 +218,7 @@
 }
 .tiptap-editor a,
 .tiptap-editor .rich-link {
-  @apply text-blue-600 underline underline-offset-2 cursor-pointer;
+  @apply text-link underline underline-offset-2 cursor-pointer;
 }
 
 /* Rich content rendering (front-end) */
@@ -226,7 +247,7 @@
   @apply my-0;
 }
 .rich-content a {
-  @apply text-blue-600 underline underline-offset-2 hover:text-blue-800 transition-colors;
+  @apply text-link underline underline-offset-2 hover:text-link-hover transition-colors;
 }
 .rich-content strong {
   @apply font-semibold text-foreground;
@@ -235,12 +256,12 @@
   @apply my-4 border-t border-border;
 }
 .rich-content h3.warning {
-  @apply text-lg font-bold text-red-600 mt-2 mb-1 first:mt-0 last:mb-0;
+  @apply text-lg font-bold text-destructive mt-2 mb-1 first:mt-0 last:mb-0;
 }
 
 .tiptap-editor hr {
   @apply my-4 border-t border-border;
 }
 .tiptap-editor h3.warning {
-  @apply text-lg font-bold text-red-600 mt-2 mb-1;
+  @apply text-lg font-bold text-destructive mt-2 mb-1;
 }

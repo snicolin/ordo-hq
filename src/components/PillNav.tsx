@@ -16,7 +16,7 @@ export default function PillNav({
   activeKey: string;
 }) {
   return (
-    <nav className="inline-flex items-center gap-0.5 rounded-lg bg-gray-200/60 p-1 max-w-full overflow-x-auto overscroll-none scrollbar-hide">
+    <nav className="inline-flex items-center gap-0.5 rounded-lg bg-muted p-1 max-w-full overflow-x-auto overscroll-none scrollbar-hide">
       {items.map((item) => {
         const isActive = item.key === activeKey;
         return (

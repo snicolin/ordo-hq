@@ -66,7 +66,7 @@ export default function AlertBar() {
               key={alert.id}
               className={`flex items-center gap-3 rounded-lg px-4 py-3 border ${
                 isYellow
-                  ? "bg-yellow-50 border-yellow-200"
+                  ? "bg-warning border-warning-border"
                   : "bg-muted border-border"
               }`}
             >
@@ -77,13 +77,13 @@ export default function AlertBar() {
                 onClick={() => handleAlertClick(alert)}
               >
                 {IconComp && (
-                  <IconComp className={`h-4 w-4 shrink-0 ${isYellow ? "text-yellow-700" : "text-muted-foreground"}`} />
+                  <IconComp className={`h-4 w-4 shrink-0 ${isYellow ? "text-warning-foreground/80" : "text-muted-foreground"}`} />
                 )}
-                <p className={`typo-label truncate ${isYellow ? "text-yellow-900" : "text-foreground"}`}>
+                <p className={`typo-label truncate ${isYellow ? "text-warning-foreground" : "text-foreground"}`}>
                   {alert.title}
                 </p>
                 {isClickable && (
-                  <ChevronRight className={`h-4 w-4 shrink-0 ${isYellow ? "text-yellow-400" : "text-muted-foreground/60"}`} />
+                  <ChevronRight className={`h-4 w-4 shrink-0 ${isYellow ? "text-warning-foreground/40" : "text-muted-foreground/60"}`} />
                 )}
               </div>
               {alert.dismissible && (
@@ -91,7 +91,7 @@ export default function AlertBar() {
                   onClick={() => dismiss(alert.id)}
                   className={`shrink-0 h-10 w-10 md:h-7 md:w-7 inline-flex items-center justify-center rounded-md transition-colors cursor-pointer ${
                     isYellow
-                      ? "text-yellow-400 hover:text-yellow-600 hover:bg-yellow-100"
+                      ? "text-warning-foreground/40 hover:text-warning-foreground/60 hover:bg-warning-border/50"
                       : "text-muted-foreground/60 hover:text-foreground hover:bg-muted"
                   }`}
                 >
@@ -111,7 +111,7 @@ export default function AlertBar() {
           <DialogHeader>
             <DialogTitle>{selectedAlert?.title}</DialogTitle>
           </DialogHeader>
-          <DialogBody className="py-2 space-y-3">
+          <DialogBody className="space-y-3">
             <p className="typo-body text-muted-foreground whitespace-pre-wrap">
               {selectedAlert?.body}
             </p>
@@ -120,7 +120,7 @@ export default function AlertBar() {
                 href={selectedAlert.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 typo-label text-blue-600 hover:text-blue-800 transition-colors"
+                className="inline-flex items-center gap-1.5 typo-label text-link hover:text-link-hover transition-colors"
               >
                 Open link
                 <ExternalLink className="h-3.5 w-3.5" />

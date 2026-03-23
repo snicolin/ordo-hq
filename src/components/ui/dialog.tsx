@@ -42,7 +42,7 @@ function DialogOverlay({
 function DialogContent({
   className,
   children,
-  showCloseButton = true,
+  showCloseButton = false,
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
@@ -83,13 +83,31 @@ function DialogContent({
   )
 }
 
-function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
+function DialogHeader({
+  className,
+  showCloseButton = true,
+  children,
+  ...props
+}: React.ComponentProps<"div"> & {
+  showCloseButton?: boolean
+}) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex shrink-0 flex-col gap-2 pr-10 pb-2", className)}
+      className={cn("flex items-center justify-between gap-4 shrink-0 pb-3", className)}
       {...props}
-    />
+    >
+      <div className="flex flex-col gap-1 min-w-0">{children}</div>
+      {showCloseButton && (
+        <DialogPrimitive.Close
+          data-slot="dialog-close"
+          render={<Button variant="ghost" size="icon-sm" className="shrink-0 -mr-1" />}
+        >
+          <XIcon />
+          <span className="sr-only">Close</span>
+        </DialogPrimitive.Close>
+      )}
+    </div>
   )
 }
 
@@ -97,7 +115,7 @@ function DialogBody({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-body"
-      className={cn("flex-1 overflow-y-auto -mx-4 px-4 py-2", className)}
+      className={cn("flex-1 overflow-y-auto -mx-4 px-4 pt-2 pb-4", className)}
       {...props}
     />
   )
@@ -136,7 +154,7 @@ function DialogTitle({ className, ...props }: DialogPrimitive.Title.Props) {
     <DialogPrimitive.Title
       data-slot="dialog-title"
       className={cn(
-        "font-heading text-base leading-none font-medium",
+        "font-heading text-lg leading-none font-medium",
         className
       )}
       {...props}

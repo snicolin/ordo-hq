@@ -37,7 +37,7 @@ export default async function SignInPage({
 
         {error && (
           <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-            <p className="typo-body text-red-600">
+            <p className="typo-body text-destructive">
               {error === "AccessDenied"
                 ? "Access denied. Only @ordoschools.com and @ordo.com email addresses are allowed."
                 : "An error occurred during sign in. Please try again."}

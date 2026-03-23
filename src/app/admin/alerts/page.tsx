@@ -200,7 +200,7 @@ export default function AdminAlertsPage() {
                         inactive
                       </Badge>
                     ) : (
-                      <Badge className="text-xs font-normal bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
+                      <Badge className="text-xs font-normal bg-success text-success-foreground hover:bg-success">
                         active
                       </Badge>
                     )}
@@ -228,7 +228,7 @@ export default function AdminAlertsPage() {
 
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+          <DialogHeader showCloseButton={false}>
             <DialogTitle>
               {editing?.id ? "Edit Alert" : "Add Alert"}
             </DialogTitle>

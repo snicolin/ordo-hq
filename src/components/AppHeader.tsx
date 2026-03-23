@@ -27,7 +27,7 @@ export default function AppHeader({
             />
           </Link>
           {badge && (
-            <Badge className={`text-xs font-medium ${badge === "Admin" ? "bg-gradient-to-b from-gray-700 to-gray-900 text-gray-100 shadow-sm ring-1 ring-white/10" : "bg-muted text-muted-foreground ring-1 ring-border"}`}>
+            <Badge className={`text-xs font-medium ${badge === "Admin" ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary-foreground/10" : "bg-muted text-muted-foreground ring-1 ring-border"}`}>
               {badge}
             </Badge>
           )}

@@ -375,7 +375,7 @@ export default function AdminUsersPage() {
             <DialogTitle>{editingGroup?.id ? "Edit Group" : "Create Group"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); saveGroup(); }}>
-            <DialogBody className="space-y-4 py-2">
+            <DialogBody className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="group-name">Name</Label>
                 <Input
@@ -420,7 +420,7 @@ export default function AdminUsersPage() {
           <DialogHeader>
             <DialogTitle>Add Members</DialogTitle>
           </DialogHeader>
-          <DialogBody className="space-y-2 py-2">
+          <DialogBody className="space-y-2">
             {ungroupedUsers.length === 0 ? (
               <p className="typo-body text-muted-foreground text-center py-4">All users are already in a group.</p>
             ) : (

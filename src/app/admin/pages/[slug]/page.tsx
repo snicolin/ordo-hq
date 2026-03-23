@@ -445,7 +445,7 @@ export default function PageDetailPage() {
             <DialogTitle>Edit Page</DialogTitle>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); savePage(); }}>
-            <DialogBody className="space-y-4 py-2">
+            <DialogBody className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="page-label">Label</Label>
                 <Input
@@ -486,7 +486,7 @@ export default function PageDetailPage() {
             <DialogTitle>{editingSection?.id ? "Edit Section" : "Add Section"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); saveSection(); }} className="flex flex-col flex-1 min-h-0">
-            <DialogBody className="space-y-4 py-2">
+            <DialogBody className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="section-title">Title</Label>
                 <Input
@@ -585,7 +585,7 @@ export default function PageDetailPage() {
             <DialogTitle>{editingItem?.id ? "Edit Item" : "Add Item"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); saveItem(); }}>
-            <DialogBody className="space-y-4 py-2">
+            <DialogBody className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="item-name">{currentSectionDisplayType === "METRIC" ? "Label" : "Name"}</Label>
                 {!editingItem?.id ? (
